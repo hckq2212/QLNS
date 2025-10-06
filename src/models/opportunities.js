@@ -49,9 +49,18 @@ const opportunities = {
     },
 
     async approve(id, approverId) {
+        // Only approve if opportunity currently pending
         const result = await db.query(
-            "UPDATE opportunity SET status = 'approved', approved_by = $1, updated_at = now() WHERE id = $2 RETURNING *",
+            "UPDATE opportunity SET status = 'approved', approved_by = $1, updated_at = now() WHERE id = $2 AND status = 'pending' RETURNING *",
             [approverId, id]
+        );
+        return result.rows[0];
+    },
+    async reject(id, rejectorId) {
+        // Only approve if opportunity currently pending
+        const result = await db.query(
+            "UPDATE opportunity SET status = 'rejected', approved_by = $1, updated_at = now() WHERE id = $2 AND status = 'pending' RETURNING *",
+            [rejectorId, id]
         );
         return result.rows[0];
     },

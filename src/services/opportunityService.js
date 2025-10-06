@@ -31,7 +31,10 @@ const opportunityService = {
         if (!id || !approverId) throw new Error('id and approverId required');
         return await opportunities.approve(id, approverId);
     },
-
+    rejectOpportunity: async (id, rejectorId) => {
+        if (!id || !rejectorId) throw new Error('id and rejectorId required');
+        return await opportunities.reject(id, rejectorId);
+    },
     getOpportunitiesByCreator: async (createdBy) => {
         if (!createdBy) throw new Error('createdBy required');
         return await opportunities.getByCreator(createdBy);

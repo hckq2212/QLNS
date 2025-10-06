@@ -20,9 +20,11 @@ opportunityRoute.patch('/:id', checkToken, opportunityController.update);
 // Delete
 opportunityRoute.delete('/:id', checkToken, opportunityController.remove);
 
-// Approve (requires auth)
-opportunityRoute.post('/:id/approve', checkToken, opportunityController.approve);
+// Approve (requires auth and role 'bod')
+opportunityRoute.post('/:id/approve', checkToken, requireRole('bod'), opportunityController.approve);
 
+// Reject (requires auth and role 'bod')
+opportunityRoute.post('/:id/reject', checkToken, requireRole('bod'), opportunityController.reject);
 // Get by creator
 opportunityRoute.get('/creator/:userId', checkToken, opportunityController.getByCreator);
 
