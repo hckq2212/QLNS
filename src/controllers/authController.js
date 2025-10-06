@@ -59,19 +59,26 @@ const authController = {
         }
     },
     changePassword: async (req,res) => {
-        const userId = req.user.id;
-        const newPassword = req.body.password;
-      
-        if (newPassword.trim() === ''){
-            res.status(404).send("Vui lòng nhập mật khẩu mới")
+        // Ensure the request is authenticated
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ error: 'Unauthorized' });
         }
-        else{ 
-            try{
-                const result = await authService.changePassword(userId,newPassword);
-                res.send(result)
-            }catch(err){
-                res.send(err)
-            }
+
+        const userId = req.user.id;
+        const newPassword = req.body && typeof req.body.password === 'string' ? req.body.password.trim() : '';
+
+        if (!newPassword) {
+            return res.status(400).json({ error: 'Vui lòng nhập mật khẩu mới' });
+        }
+
+        try {
+            const result = await authService.changePassword(userId, newPassword);
+            // If service returns an Error object or string, handle accordingly
+            if (!result) return res.status(500).json({ error: 'Failed to update password' });
+            return res.json({ message: 'Password updated successfully', user: result });
+        } catch (err) {
+            console.error('Change password error:', err);
+            return res.status(500).json({ error: 'Internal server error' });
         }
     }
 }
