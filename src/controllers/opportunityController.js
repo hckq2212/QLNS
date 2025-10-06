@@ -12,6 +12,15 @@ const opportunityController = {
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
+    getAllPendingOpportunities: async (req, res) => {
+        try {
+            const result = await opportunityService.geAllPendingOpportunities();
+            return res.json(result);
+        } catch (err) {
+            console.error('getAllOpportunities error:', err);
+            return res.status(500).json({ error: 'Internal server error' });
+        }
+    },
 
     getById: async (req, res) => {
         try {

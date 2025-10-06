@@ -6,7 +6,9 @@ import requireRole from '../middleware/roleMiddleware.js'
 const opportunityRoute = express.Router();
 
 // List all - only allowed for role 'sale'
-opportunityRoute.get('/', checkToken, requireRole('sale'), opportunityController.getAllOpportunities);
+opportunityRoute.get('/', checkToken, opportunityController.getAllOpportunities);
+
+opportunityRoute.get('/pending-opportunities', checkToken, opportunityController.getAllPendingOpportunities);
 
 // Get single
 opportunityRoute.get('/:id', checkToken, opportunityController.getById);

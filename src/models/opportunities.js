@@ -5,7 +5,10 @@ const opportunities = {
         const result = await db.query('SELECT * FROM opportunity ORDER BY created_at DESC');
         return result.rows;
     },
-
+    async getAllPending() {
+        const result = await db.query("SELECT * FROM opportunity WHERE status = 'pending'");
+        return result.rows;
+    },
     async getById(id) {
         const result = await db.query('SELECT * FROM opportunity WHERE id = $1', [id]);
         return result.rows[0];
