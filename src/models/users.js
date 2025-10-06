@@ -10,7 +10,10 @@ const users = {
         return result.rows[0];
     },
     async createUser(username, password){
-        const result = await db.query("INSERT INTO users(username, password) VALUES($1, $2)",[username,password])
+        const result = await db.query(
+            "INSERT INTO users(username, password) VALUES($1, $2) RETURNING *",
+            [username, password]
+        )
         return result.rows[0];
     },
     async getUserById (id){
@@ -24,6 +27,14 @@ const users = {
         const result = await db.query(
             "UPDATE users SET password = $1 WHERE id = $2 RETURNING *",
             [password, id]
+        )
+        return result.rows[0]
+    }
+    ,
+    async updateUserRefreshTokenById(id, refreshToken){
+        const result = await db.query(
+            "UPDATE users SET refresh_token = $1 WHERE id = $2 RETURNING *",
+            [refreshToken, id]
         )
         return result.rows[0]
     }

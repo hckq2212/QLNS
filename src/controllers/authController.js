@@ -39,6 +39,18 @@ const authController = {
             }
         }
     },
+    refresh: async (req, res) => {
+        // accept refresh token from body (or cookie) and return new tokens
+        const incoming = req.body.refreshToken || req.headers['x-refresh-token']
+        try{
+            const result = await authService.refresh(incoming)
+            if (result && result.error) return res.status(401).send(result.error)
+            return res.send(result)
+        }catch(err){
+            console.error(err)
+            return res.status(500).send('Internal error')
+        }
+    },
     changePassword: async (req,res) => {
         const userId = req.user.id;
         const newPassword = req.body.password;

@@ -11,5 +11,6 @@ authRoute.get('/', (req, res)=>{
 authRoute.post('/register', authController.register )
 authRoute.post('/login', authController.login )
 authRoute.patch('/change-password',checkToken,authController.changePassword)
+authRoute.post('/refresh-token', authController.refresh)
 
 export default authRoute;
