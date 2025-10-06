@@ -7,7 +7,7 @@ const saltRounds = Number(process.env.SALT_ROUNDS) || 10;
 
 // create tokens for a given user object
 function createToken(user){
-    const role = user.role || 'user'
+    const role = user.role || 'staff'
     const payload = { id: user.id, name: user.username, role }
     const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET_KEY, {
         expiresIn: '1h'
@@ -20,14 +20,14 @@ function createToken(user){
 
 const authService = {
     register: async (userInput) => {
-        const user = await users.getUserByUsername(userInput.username)
-        if (user) {
+        const existing = await users.getUserByUsername(userInput.username)
+        if (existing) {
             return "Tài khoản đã tồn tại"
         }
 
         try {
             const hashedPassword = await bcrypt.hash(userInput.password, saltRounds);
-            const newUser = await users.createUser(userInput.username, hashedPassword);
+            const newUser = await users.createUser(userInput.username, hashedPassword, userInput.fullName || userInput.full_name);
             return newUser;
         } catch (err) {
             return err;
@@ -35,20 +35,20 @@ const authService = {
     },
 
     login: async (userInput) => {
-        const user = await users.getUserByUsername(userInput.username);
-        if (!user) {
-            return "Account not existed"
+        const found = await users.getUserByUsername(userInput.username);
+        if (!found) {
+            return "Tài khoản không tồn tại"
         }
 
-        const result = await bcrypt.compare(userInput.password, user.password)
+        const result = await bcrypt.compare(userInput.password, found.password)
         if (!result) {
-            return "Invalid password"
+            return "Mật khẩu không hợp lệ"
         }
 
         // create tokens and persist refresh token for the user (so we can revoke/rotate later)
-        const tokens = createToken(user);
+        const tokens = createToken(found);
         try {
-            await users.updateUserRefreshTokenById(user.id, tokens.refreshToken);
+            await users.updateUserRefreshTokenById(found.id, tokens.refreshToken);
         } catch (err) {
             // if persisting the refresh token fails, still return tokens but log the error
             console.error('Failed to persist refresh token:', err);
@@ -66,16 +66,16 @@ const authService = {
             const payload = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET_KEY)
 
             // find the user and confirm the stored refresh token matches
-            const user = await users.getUserById(payload.id)
-            if (!user) return { error: 'User not found' }
+            const found = await users.getUserById(payload.id)
+            if (!found) return { error: 'User not found' }
 
-            if (!user.refresh_token || user.refresh_token !== incomingRefreshToken) {
+            if (!found.refresh_token || found.refresh_token !== incomingRefreshToken) {
                 return { error: 'Invalid or revoked refresh token' }
             }
 
             // rotate: issue new pair and persist new refresh token
-            const tokens = createToken(user)
-            await users.updateUserRefreshTokenById(user.id, tokens.refreshToken)
+            const tokens = createToken(found)
+            await users.updateUserRefreshTokenById(found.id, tokens.refreshToken)
             return tokens
         } catch (err) {
             // jwt.verify throws on invalid/expired tokens

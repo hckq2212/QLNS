@@ -1,5 +1,5 @@
 import users from '../models/users.js';
-import userSecvice from '../services/authService.js';
+import userService from '../services/userService.js';
 import 'dotenv'
 
 

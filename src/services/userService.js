@@ -1,8 +1,8 @@
 import users from '../models/users.js'
 
 
-const userSecvice = {
+const userService = {
 
 }
 
-export default userSecvice
+export default userService

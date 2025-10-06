@@ -8,17 +8,23 @@ const authController = {
     register: async (req, res) => {
         const userInput = {
             username: req.body.username,
-            password: req.body.password
+            password: req.body.password,
+            full_name: req.body.fullName
         }
-        if(!userInput.username || !userInput.password) return ; 
-        
-        else{
-            try{
-                const result = await authService.register(userInput);
-                res.send(result)
-            }catch(err){
-                console.log(err)
+        if(!userInput.username || !userInput.password || !userInput.full_name) {
+            return res.status(400).json({ error: 'Missing username, password or fullName' });
+        }
+
+        try{
+            const result = await authService.register(userInput);
+            if (typeof result === 'string') {
+                // service returned a message (e.g. user exists)
+                return res.status(400).json({ error: result });
             }
+            return res.status(201).json(result);
+        } catch(err){
+            console.error('Register error:', err);
+            return res.status(500).json({ error: 'Internal server error' });
         }
 
     },
@@ -28,15 +34,16 @@ const authController = {
             password: req.body.password
         }
         if(!userInput.password || !userInput.username){
-            res.status(401).send("Invalid")
-        }else{
-            try{
-                const result = await authService.login(userInput)
-                res.send(result)
+            return res.status(400).json({ error: 'Missing username or password' });
+        }
 
-            }catch(err){
-                console.log(err)
-            }
+        try{
+            const result = await authService.login(userInput)
+            if (typeof result === 'string') return res.status(401).json({ error: result });
+            return res.json(result)
+        }catch(err){
+            console.error('Login error:', err);
+            return res.status(500).json({ error: 'Internal server error' });
         }
     },
     refresh: async (req, res) => {
@@ -58,7 +65,7 @@ const authController = {
         if (newPassword.trim() === ''){
             res.status(404).send("Vui lòng nhập mật khẩu mới")
         }
-        else{
+        else{ 
             try{
                 const result = await authService.changePassword(userId,newPassword);
                 res.send(result)

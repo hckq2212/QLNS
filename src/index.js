@@ -1,7 +1,7 @@
 import express from 'express'
 import 'dotenv/config'
 import  authRoute from './routes/authRoute.js'
-import taskRoute  from './routes/taskRoute.js'
+import opportunityRoute  from './routes/opportunityRoute.js'
 import userRoute  from './routes/userRoute.js'
 
 const app = express()
@@ -10,7 +10,7 @@ const port = process.env.PORT || 3000
 
 
 app.use('/auth', authRoute)
-app.use('/tasks', taskRoute)
+app.use('/opportunities', opportunityRoute)
 app.use('/user',userRoute)
 
 app.get('/',(req, res) =>{
