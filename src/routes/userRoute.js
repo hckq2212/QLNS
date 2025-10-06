@@ -3,10 +3,6 @@ import userController from '../controllers/userController.js'
 
 const userRoute = express.Router()
 
-userRoute.get('/', (req, res)=>{
-    res.send("Hello")
-})
-
-userRoute.get('/getall',userController.getAllUser)
+userRoute.get('/',userController.getAllUser)
 
 export default userRoute;

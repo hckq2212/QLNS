@@ -1,10 +1,29 @@
 import opportunityController from '../controllers/opportunityController.js'
 import express from 'express'
 import checkToken from '../middleware/authMiddleware.js'
+import requireRole from '../middleware/roleMiddleware.js'
 
 const opportunityRoute = express.Router();
 
-opportunityRoute.get('/',checkToken, opportunityController.getAllTasks);
+// List all - only allowed for role 'sale'
+opportunityRoute.get('/', checkToken, requireRole('sale'), opportunityController.getAllOpportunities);
 
+// Get single
+opportunityRoute.get('/:id', checkToken, opportunityController.getById);
+
+// Create
+opportunityRoute.post('/', checkToken, opportunityController.create);
+
+// Update
+opportunityRoute.patch('/:id', checkToken, opportunityController.update);
+
+// Delete
+opportunityRoute.delete('/:id', checkToken, opportunityController.remove);
+
+// Approve (requires auth)
+opportunityRoute.post('/:id/approve', checkToken, opportunityController.approve);
+
+// Get by creator
+opportunityRoute.get('/creator/:userId', checkToken, opportunityController.getByCreator);
 
 export default opportunityRoute;

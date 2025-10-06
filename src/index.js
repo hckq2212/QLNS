@@ -10,7 +10,7 @@ const port = process.env.PORT || 3000
 
 
 app.use('/auth', authRoute)
-app.use('/opportunities', opportunityRoute)
+app.use('/opportunity', opportunityRoute)
 app.use('/user',userRoute)
 
 app.get('/',(req, res) =>{

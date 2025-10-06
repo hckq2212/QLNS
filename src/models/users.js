@@ -12,10 +12,10 @@ const users = {
     return result.rows[0];
   },
   // passwordHash should be a hashed password value (not plain text)
-  async createUser(username, passwordHash, full_name) {
+  async createUser(username, passwordHash, full_name, role) {
     const result = await db.query(
-      'INSERT INTO "user" (username, password, full_name) VALUES($1, $2, $3) RETURNING *',
-      [username, passwordHash, full_name]
+      'INSERT INTO "user" (username, password, full_name, role) VALUES($1, $2, $3, $4) RETURNING *',
+      [username, passwordHash, full_name, role]
     );
     return result.rows[0];
   },

@@ -7,7 +7,7 @@ const saltRounds = Number(process.env.SALT_ROUNDS) || 10;
 
 // create tokens for a given user object
 function createToken(user){
-    const role = user.role || 'staff'
+    const role = user.role
     const payload = { id: user.id, name: user.username, role }
     const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET_KEY, {
         expiresIn: '1h'
@@ -27,7 +27,7 @@ const authService = {
 
         try {
             const hashedPassword = await bcrypt.hash(userInput.password, saltRounds);
-            const newUser = await users.createUser(userInput.username, hashedPassword, userInput.fullName || userInput.full_name);
+            const newUser = await users.createUser(userInput.username, hashedPassword, userInput.fullName || userInput.full_name, userInput.role);
             return newUser;
         } catch (err) {
             return err;

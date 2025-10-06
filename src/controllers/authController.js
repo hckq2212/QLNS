@@ -9,10 +9,11 @@ const authController = {
         const userInput = {
             username: req.body.username,
             password: req.body.password,
-            full_name: req.body.fullName
+            full_name: req.body.fullName,
+            role: req.body.role
         }
-        if(!userInput.username || !userInput.password || !userInput.full_name) {
-            return res.status(400).json({ error: 'Missing username, password or fullName' });
+        if(!userInput.username || !userInput.password || !userInput.full_name || !userInput.role) {
+            return res.status(400).json({ error: 'Thiếu thông tin' });
         }
 
         try{
