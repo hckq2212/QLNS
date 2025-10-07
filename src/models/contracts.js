@@ -5,8 +5,8 @@ const contracts = {
         const result = await db.query('SELECT * FROM contract');
         return result.rows;
     },
-    async getById () {
-        const result = await db.query('SELECT * FROM contract WHERE id = $1',(id));
+    async getById (id) {
+        const result = await db.query('SELECT * FROM contract WHERE id = $1',[id]);
         return result.rows[0];
     },
     async getAllPendingContracts () {

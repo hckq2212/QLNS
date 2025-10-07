@@ -1,7 +1,7 @@
 import contracts  from "../models/contracts.js";
 
 const contractService = {
-    getAllContracts: async () => {
+    getAll: async () => {
         try{
             const result = await contracts.getAllContracts();
             return result;
@@ -9,7 +9,7 @@ const contractService = {
            return err;
         }
     },
-    getAllPendingContracts: async () =>{
+    getAllPending: async () =>{
         try{
             const result = await contracts.getAllPendingContracts();
             return result;
@@ -17,9 +17,9 @@ const contractService = {
             return err;
         }
     },
-    getContractById: async (id) => {
+    getById: async (contractId) => {
         try{
-            const result = await contracts.getById(id);
+            const result = await contracts.getById(contractId);
             return result;
         }catch(err){
             return err;
