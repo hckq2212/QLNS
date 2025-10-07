@@ -21,13 +21,13 @@ const users = {
   // passwordHash should be a hashed password value (not plain text)
   async createUser(username, passwordHash, full_name, role) {
     const result = await db.query(
-      'INSERT INTO "user" (username, password, full_name, role) VALUES($1, $2, $3, $4)',
+      'INSERT INTO "user" (username, password, full_name, role) VALUES($1, $2, $3, $4) RETURNING id, username, full_name, role, email, phone, status, created_at, refresh_token',
       [username, passwordHash, full_name, role]
     );
     return result.rows[0];
   },
   async getUserById(id) {
-    const result = await db.query('SELECT id, username, full_name, role, email, phone, status, created_at FROM "user" WHERE id = $1', [id]);
+    const result = await db.query('SELECT id, username, full_name, role, email, phone, status, created_at, refresh_token  FROM "user" WHERE id = $1', [id]);
     return result.rows[0];
   },
   // Update user profile fields. Allowed: username, full_name, phone, email, role, status
