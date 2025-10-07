@@ -8,7 +8,8 @@ const users = {
     return result.rows;
   },
   async getUserByUsername(username) {
-    const result = await db.query('SELECT username, full_name, role, email, phone, status FROM "user" WHERE username = $1', [username]);
+    // include id for callers that need the primary key
+    const result = await db.query('SELECT id, username, full_name, role, email, phone, status FROM "user" WHERE username = $1', [username]);
     return result.rows[0];
   },
   // Returns full user row including id, password and refresh_token for auth flows
@@ -20,8 +21,9 @@ const users = {
   },
   // passwordHash should be a hashed password value (not plain text)
   async createUser(username, passwordHash, full_name, role) {
+    // Do not return refresh_token here (it will be null on creation unless you set one)
     const result = await db.query(
-      'INSERT INTO "user" (username, password, full_name, role) VALUES($1, $2, $3, $4) RETURNING id, username, full_name, role, email, phone, status, created_at, refresh_token',
+      'INSERT INTO "user" (username, password, full_name, role) VALUES($1, $2, $3, $4) RETURNING id, username, full_name, role, email, phone, status, created_at',
       [username, passwordHash, full_name, role]
     );
     return result.rows[0];
@@ -52,14 +54,14 @@ const users = {
   },
   async updateUserPasswordById(id, passwordHash) {
     const result = await db.query(
-      'UPDATE "user" SET password = $1 WHERE id = $2',
+      'UPDATE "user" SET password = $1 WHERE id = $2 RETURNING id, username',
       [passwordHash, id]
     );
     return result.rows[0];
   },
   async updateUserRefreshTokenById(id, refreshToken) {
     const result = await db.query(
-      'UPDATE "user" SET refresh_token = $1 WHERE id = $2',
+      'UPDATE "user" SET refresh_token = $1 WHERE id = $2 RETURNING id',
       [refreshToken, id]
     );
     return result.rows[0];
