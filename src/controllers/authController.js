@@ -22,7 +22,14 @@ const authController = {
                 // service returned a message (e.g. user exists)
                 return res.status(400).json({ error: result });
             }
-            return res.status(201).json(result);
+            // result is the created user row; don't return sensitive fields
+            const publicUser = {
+                id: result.id,
+                username: result.username,
+                full_name: result.full_name,
+                role: result.role
+            };
+            return res.status(201).json(publicUser);
         } catch(err){
             console.error('Register error:', err);
             return res.status(500).json({ error: 'Internal server error' });
@@ -73,10 +80,8 @@ const authController = {
         }
 
         try {
-            const result = await authService.changePassword(userId, newPassword);
-            // If service returns an Error object or string, handle accordingly
-            if (!result) return res.status(500).json({ error: 'Failed to update password' });
-            return res.json({ message: 'Password updated successfully', user: result });
+            await authService.changePassword(userId, newPassword);
+            return res.json({ message: 'Password updated successfully' });
         } catch (err) {
             console.error('Change password error:', err);
             return res.status(500).json({ error: 'Internal server error' });

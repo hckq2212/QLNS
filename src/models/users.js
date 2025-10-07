@@ -27,7 +27,7 @@ const users = {
     return result.rows[0];
   },
   async getUserById(id) {
-    const result = await db.query('SELECT * FROM "user" WHERE id = $1', [id]);
+    const result = await db.query('SELECT id, username, full_name, role, email, phone, status, created_at FROM "user" WHERE id = $1', [id]);
     return result.rows[0];
   },
   // Update user profile fields. Allowed: username, full_name, phone, email, role, status
@@ -52,14 +52,14 @@ const users = {
   },
   async updateUserPasswordById(id, passwordHash) {
     const result = await db.query(
-      'UPDATE "user" SET password = $1 WHERE id = $2 RETURNING *',
+      'UPDATE "user" SET password = $1 WHERE id = $2',
       [passwordHash, id]
     );
     return result.rows[0];
   },
   async updateUserRefreshTokenById(id, refreshToken) {
     const result = await db.query(
-      'UPDATE "user" SET refresh_token = $1 WHERE id = $2 RETURNING *',
+      'UPDATE "user" SET refresh_token = $1 WHERE id = $2',
       [refreshToken, id]
     );
     return result.rows[0];
