@@ -19,5 +19,13 @@ const debts = {
         );
         return result.rows[0];
     }
+    ,
+    async create(contractId, amount = 0, dueDate = null, status = 'pending') {
+        const result = await db.query(
+            'INSERT INTO debt (contract_id, amount, due_date, status) VALUES ($1, $2, $3, $4) RETURNING id, contract_id, amount, due_date, status',
+            [contractId, amount, dueDate, status]
+        );
+        return result.rows[0];
+    }
 }
 export default debts;

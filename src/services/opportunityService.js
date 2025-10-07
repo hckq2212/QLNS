@@ -1,6 +1,7 @@
 import opportunities from '../models/opportunities.js'
 import customers from '../models/customers.js';
 import contracts from '../models/contracts.js'
+import debtService from './debtService.js';
 
 
 const opportunityService = {
@@ -58,8 +59,11 @@ const opportunityService = {
         const totalCost = op.expected_price || 0;
         const contract = await contracts.create(id, customerId, totalCost, approverId);
 
+        // Create a debt for this contract with status 'pending'
+        const debt = await debtService.create(contract.id, totalCost, null, 'pending');
+
         // Return combined result
-        return { opportunity: approved, contract };
+        return { opportunity: approved, contract, debt };
     },
     rejectOpportunity: async (id, rejectorId) => {
         if (!id || !rejectorId) throw new Error('id and rejectorId required');
