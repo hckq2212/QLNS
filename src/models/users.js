@@ -30,6 +30,26 @@ const users = {
     const result = await db.query('SELECT * FROM "user" WHERE id = $1', [id]);
     return result.rows[0];
   },
+  // Update user profile fields. Allowed: username, full_name, phone, email, role, status
+  async update(id, fields = {}) {
+    const allowed = ['username', 'full_name', 'phone', 'email', 'role', 'status'];
+    const set = [];
+    const params = [];
+    let idx = 1;
+    for (const key of allowed) {
+      // Only include the key if caller provided a non-null, non-undefined value
+      if (Object.prototype.hasOwnProperty.call(fields, key) && fields[key] !== undefined && fields[key] !== null) {
+        set.push(`${key} = $${idx}`);
+        params.push(fields[key]);
+        idx++;
+      }
+    }
+    if (set.length === 0) return null;
+    params.push(id);
+    const sql = `UPDATE "user" SET ${set.join(', ')} WHERE id = $${idx} RETURNING id, username, full_name, role, email, phone, status, created_at`;
+    const result = await db.query(sql, params);
+    return result.rows[0];
+  },
   async updateUserPasswordById(id, passwordHash) {
     const result = await db.query(
       'UPDATE "user" SET password = $1 WHERE id = $2 RETURNING *',
@@ -43,7 +63,8 @@ const users = {
       [refreshToken, id]
     );
     return result.rows[0];
-  }
+  },
+  
 };
 
 export default users;

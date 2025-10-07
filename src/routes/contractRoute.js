@@ -11,6 +11,6 @@ contractRoute.use(checkToken);
 contractRoute.get('/', contractController.getAll);
 contractRoute.get('/pending', contractController.getAllPending);
 contractRoute.get('/:id', contractController.getById);
-contractRoute.post('/create', contractController.create);
+contractRoute.post('/', contractController.create);
 
 export default contractRoute;

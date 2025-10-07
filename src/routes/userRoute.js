@@ -10,6 +10,7 @@ userRoute.get('/', checkToken, requireRole('bod'), userController.getAllUser)
 
 // Get single user (admin or the user themselves)
 userRoute.get('/:id', checkToken, userController.getUserById)
+userRoute.put('/:id', checkToken, userController.update)
 
 
 

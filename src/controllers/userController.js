@@ -26,6 +26,23 @@ const userContoller = {
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
+    update: async (req, res) =>{
+        try {
+            const userId = req.params.id;
+            const {
+                username,
+                fullName,
+                phoneNumber,
+                email
+            } = req.body;
+            const result = await userService.update(userId, username, fullName, phoneNumber, email)
+            if (!result) return res.status(404).json({ error: 'User not found or no fields to update' });
+            return res.json(result);
+        } catch(err) {
+            console.error('update user error:', err);
+            return res.status(500).json({ error: 'Internal server error' });
+        }
+    }
 
 };
 export default userContoller;
