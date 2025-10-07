@@ -69,11 +69,18 @@ const authService = {
         try {
             if (!incomingRefreshToken) return { error: 'No refresh token provided' }
 
-            const payload = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET_KEY)
+                const payload = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET_KEY)
+                if (!payload || !payload.id) {
+                    console.error('refresh token payload missing id:', payload);
+                    return { error: 'Invalid refresh token payload' };
+                }
 
-            // find the user and confirm the stored refresh token matches
-            const found = await users.getUserById(payload.id)
-            if (!found) return { error: 'User not found' }
+                // find the user and confirm the stored refresh token matches
+                const found = await users.getUserById(payload.id)
+                if (!found) {
+                    console.error('User not found for id from refresh token:', payload.id);
+                    return { error: 'User not found' }
+                }
 
             if (!found.refresh_token || found.refresh_token !== incomingRefreshToken) {
                 return { error: 'Invalid or revoked refresh token' }

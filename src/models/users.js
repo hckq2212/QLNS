@@ -11,9 +11,9 @@ const users = {
     const result = await db.query('SELECT username, full_name, role, email, phone, status FROM "user" WHERE username = $1', [username]);
     return result.rows[0];
   },
-  // Returns full user row including password and refresh_token for auth flows
+  // Returns full user row including id, password and refresh_token for auth flows
   async getAuthByUsername(username) {
-    const result = await db.query('SELECT username, password, refresh_token FROM "user" WHERE username = $1', [username]);
+    const result = await db.query('SELECT id, username, password, refresh_token, role FROM "user" WHERE username = $1', [username]);
     const row = result.rows[0];
     if (!row) return null;
     return row;
