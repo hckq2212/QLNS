@@ -1,6 +1,5 @@
 import contracts  from "../models/contracts.js";
 import customers from "../models/customers.js";
-import opportunities from "../models/opportunities.js";
 
 const contractService = {
     getAll: async () => {

@@ -7,6 +7,7 @@ import customerRoute from './routes/customerRoute.js'
 import contractRoute from './routes/contractRoute.js'
 import jobRoute from './routes/jobRoute.js'
 import debtRoute from './routes/debtRoute.js'
+import serviceRoute from './routes/serviceRoute.js'
 
 const app = express()
 app.use(express.json())
@@ -20,6 +21,7 @@ app.use('/customer',customerRoute)
 app.use('/contract',contractRoute)
 app.use('/job',jobRoute)
 app.use('/debt',debtRoute)
+app.use('/service', serviceRoute)
 
 app.get('/',(req, res) =>{
     res.status(200).send("Hello word")
