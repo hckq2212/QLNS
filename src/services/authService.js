@@ -30,7 +30,8 @@ const authService = {
             const newUser = await users.createUser(userInput.username, hashedPassword, userInput.fullName || userInput.full_name, userInput.role);
             return newUser;
         } catch (err) {
-            return err;
+            console.error('register error:', err);
+            throw new Error('Failed to register user');
         }
     },
 
@@ -94,7 +95,8 @@ const authService = {
             const result = await users.updateUserPasswordById(userId, hashedPassword);
             return result;
         } catch (err) {
-            return err
+            console.error('changePassword error:', err);
+            throw new Error('Failed to change password');
         }
     }
 }

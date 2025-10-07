@@ -12,4 +12,5 @@ userRoute.get('/', checkToken, requireRole('bod'), userController.getAllUser)
 userRoute.get('/:id', checkToken, userController.getUserById)
 
 
+
 export default userRoute;

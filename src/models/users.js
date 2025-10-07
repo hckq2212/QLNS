@@ -13,13 +13,9 @@ const users = {
   },
   // Returns full user row including password and refresh_token for auth flows
   async getAuthByUsername(username) {
-    const result = await db.query('SELECT * FROM "user" WHERE username = $1', [username]);
+    const result = await db.query('SELECT username, password, refresh_token FROM "user" WHERE username = $1', [username]);
     const row = result.rows[0];
     if (!row) return null;
-    // normalize common password column names (password, password_hash)
-    if (!row.password && row.password_hash) {
-      row.password = row.password_hash;
-    }
     return row;
   },
   // passwordHash should be a hashed password value (not plain text)

@@ -7,7 +7,7 @@ const userService = {
 	},
 
 	getUserById: async (id) => {
-		if (!id) throw new Error('id required')
+		if (!id) throw new Error('thiếu id')
 		return await users.getUserById(id)
 	},
 }

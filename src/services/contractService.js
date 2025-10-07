@@ -4,28 +4,16 @@ import opportunities from "../models/opportunities.js";
 
 const contractService = {
     getAll: async () => {
-        try{
-            const result = await contracts.getAllContracts();
-            return result;
-        }catch(err){
-           return err;
-        }
+        const result = await contracts.getAllContracts();
+        return result;
     },
     getAllPending: async () =>{
-        try{
-            const result = await contracts.getAllPendingContracts();
-            return result;
-        }catch(err){
-            return err;
-        }
+        const result = await contracts.getAllPendingContracts();
+        return result;
     },
     getById: async (contractId) => {
-        try{
-            const result = await contracts.getById(contractId);
-            return result;
-        }catch(err){
-            return err;
-        }
+        const result = await contracts.getById(contractId);
+        return result;
     },
     create: async (opportunityId, customerId, totalCost, customerTemp, creatorId ) => {
         try{

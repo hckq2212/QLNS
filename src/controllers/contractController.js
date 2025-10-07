@@ -33,6 +33,7 @@ const contractController = {
         }
     },
     create: async (req, res) => {
+        if (!req.user || !req.user.id) return res.status(401).json({ error: 'Unauthorized' });
         const creatorId = req.user.id;
         const body = {
             opportunityId : req.body.opportunityId,
