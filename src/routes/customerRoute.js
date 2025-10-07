@@ -1,8 +1,9 @@
 import express from 'express'
-import cusomerController from '../controllers/customerController.js'
+import customerController from '../controllers/customerController.js'
 
 const customerRoute = express.Router()
 
-customerRoute.get('/',cusomerController.getAllCustomer)
+customerRoute.get('/',customerController.getAllCustomer)
+
 
 export default customerRoute;

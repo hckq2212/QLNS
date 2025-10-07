@@ -35,14 +35,19 @@ const authService = {
     },
 
     login: async (userInput) => {
-        const found = await users.getUserByUsername(userInput.username);
+    const found = await users.getAuthByUsername(userInput.username);
         if (!found) {
             return "Tài khoản không tồn tại"
         }
 
-        const result = await bcrypt.compare(userInput.password, found.password)
+        if (!found.password) {
+            console.error('Stored password hash missing for user:', userInput.username);
+            return 'Authentication data misconfigured';
+        }
+
+        const result = await bcrypt.compare(userInput.password, found.password);
         if (!result) {
-            return "Mật khẩu không hợp lệ"
+            return "Mật khẩu không hợp lệ";
         }
 
         // create tokens and persist refresh token for the user (so we can revoke/rotate later)

@@ -77,11 +77,12 @@ const opportunityController = {
             const id = req.params.id;
             const approverId = req.user && req.user.id;
             if (!approverId) return res.status(401).json({ error: 'Unauthorized' });
-            const approved = await opportunityService.approveOpportunity(id, approverId);
-            if (!approved) {
+            const result = await opportunityService.approveOpportunity(id, approverId);
+            // result expected: { opportunity, contract }
+            if (!result || !result.opportunity) {
                 return res.status(404).json({ error: 'Opportunity not found or already approved/rejected' });
             }
-            return res.json(approved);
+            return res.json(result);
         } catch (err) {
             console.error('approve error:', err);
             return res.status(400).json({ error: err.message || 'Bad request' });
