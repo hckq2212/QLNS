@@ -4,11 +4,11 @@ import db from "../config/db.js";
 // is `password`. Use parameterized queries to avoid SQL injection.
 const users = {
   async getAll() {
-    const result = await db.query('SELECT * FROM "user"');
+    const result = await db.query('SELECT username, full_name, role, email, phone, status FROM "user"');
     return result.rows;
   },
   async getUserByUsername(username) {
-    const result = await db.query('SELECT * FROM "user" WHERE username = $1', [username]);
+    const result = await db.query('SELECT username, full_name, role, email, phone, status FROM "user" WHERE username = $1', [username]);
     return result.rows[0];
   },
   // passwordHash should be a hashed password value (not plain text)
