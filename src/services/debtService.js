@@ -7,7 +7,11 @@ const debtService = {
     },
     getById: async (debtId) => {
         const result = await debts.getById(debtId);
-        return result
+        return result;
+    },
+    updateStatus: async (debtId, debtStatus) => {
+        const result = await debts.updateStatus(debtId, debtStatus);
+        return result;
     }
 }
 

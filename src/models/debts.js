@@ -11,6 +11,13 @@ const debts = {
             [id]
         );
         return result.rows[0];
+    },
+    updateStatus: async (id, status) => {
+        const result = await db.query(
+            "UPDATE debt SET status = $1 WHERE id = $2 RETURNING id, contract_id, amount, due_date, status",
+            [status,id]
+        );
+        return result.rows[0];
     }
 }
 export default debts;
