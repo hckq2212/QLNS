@@ -8,7 +8,7 @@ const opportunityService = {
     getAllOpportunities: async () => {
         return await opportunities.getAll();
     },
-    geAllPendingOpportunities: async () =>{
+    getAllPendingOpportunities: async () =>{
         return await opportunities.getAllPending();
     },
     getOpportunityById: async (id) => {

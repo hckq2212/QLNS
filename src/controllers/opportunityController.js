@@ -14,7 +14,7 @@ const opportunityController = {
     },
     getAllPendingOpportunities: async (req, res) => {
         try {
-            const result = await opportunityService.geAllPendingOpportunities();
+            const result = await opportunityService.getAllPendingOpportunities();
             return res.json(result);
         } catch (err) {
             console.error('getAllOpportunities error:', err);
