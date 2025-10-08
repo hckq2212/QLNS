@@ -1,4 +1,3 @@
-import users from '../models/users.js';
 import authService from '../services/authService.js';
 import 'dotenv'
 

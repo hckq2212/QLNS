@@ -10,7 +10,7 @@ const opportunities = {
         return result.rows;
     },
     async getById(id) {
-        const result = await db.query('SELECT * FROM opportunity WHERE id = $1', [id]);
+        const result = await db.query('SELECT * FROM opportunity WHERE id = $1 FOR UPDATE', [id]);
         return result.rows[0];
     },
 
@@ -51,9 +51,12 @@ const opportunities = {
         return result.rows[0];
     },
 
-    async approve(id, approverId) {
+    async approve(id, approverId, conn = db) {
         // Only approve if opportunity currently pending
-        const result = await db.query(
+        // Accept an optional `conn` (client or pool) so callers can pass a
+        // transaction client to run this update inside a larger transaction.
+        const runner = conn || db;
+        const result = await runner.query(
             "UPDATE opportunity SET status = 'approved', approved_by = $1, updated_at = now() WHERE id = $2 AND status = 'pending' RETURNING *",
             [approverId, id]
         );
