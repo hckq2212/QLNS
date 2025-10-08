@@ -20,11 +20,11 @@ const users = {
     return row;
   },
   // passwordHash should be a hashed password value (not plain text)
-  async createUser(username, passwordHash, full_name, role) {
+  async createUser(username, passwordHash, full_name, role, phoneNumber, email) {
     // Do not return refresh_token here (it will be null on creation unless you set one)
     const result = await db.query(
-      'INSERT INTO "user" (username, password, full_name, role) VALUES($1, $2, $3, $4) RETURNING id, username, full_name, role, email, phone, status, created_at',
-      [username, passwordHash, full_name, role]
+      'INSERT INTO "user" (username, password, full_name, role, phone, email) VALUES($1, $2, $3, $4, $5, $6) RETURNING id, username, full_name, role, email, phone, status, created_at',
+      [username, passwordHash, full_name, role, phoneNumber, email]
     );
     return result.rows[0];
   },

@@ -8,10 +8,12 @@ const authController = {
         const userInput = {
             username: req.body.username,
             password: req.body.password,
-            full_name: req.body.fullName,
-            role: req.body.role
+            fullName: req.body.fullName || req.body.full_name,
+            role: req.body.role || 'staff',
+            phoneNumber: req.body.phoneNumber || req.body.phone,
+            email: req.body.email
         }
-        if(!userInput.username || !userInput.password || !userInput.full_name || !userInput.role) {
+        if(!userInput.username || !userInput.password || !userInput.fullName || !userInput.phoneNumber || !userInput.email) {
             return res.status(400).json({ error: 'Thiếu thông tin' });
         }
 
@@ -25,7 +27,7 @@ const authController = {
             const publicUser = {
                 id: result.id,
                 username: result.username,
-                full_name: result.full_name,
+                fullName: result.full_name,
                 role: result.role
             };
             return res.status(201).json(publicUser);
