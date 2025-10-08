@@ -24,7 +24,6 @@ const opportunities = {
     },
 
     async update(id, fields = {}) {
-        // Allowed fields to update
         const allowed = ['customer_id', 'customer_temp', 'expected_price', 'description', 'status', 'approved_by'];
         const setClauses = [];
         const params = [];
@@ -63,7 +62,7 @@ const opportunities = {
         return result.rows[0];
     },
     async reject(id, rejectorId) {
-        // Only approve if opportunity currently pending
+        // Only reject if opportunity currently pending
         const result = await db.query(
             "UPDATE opportunity SET status = 'rejected', approved_by = $1, updated_at = now() WHERE id = $2 AND status = 'pending' RETURNING *",
             [rejectorId, id]

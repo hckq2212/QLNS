@@ -23,16 +23,13 @@ const authController = {
         };
 
         // Basic validations
-        if (!userInput.username || !userInput.password || !userInput.fullName) {
-            return res.status(400).json({ error: 'username, password and fullName are required' });
+        if (!userInput.username || !userInput.password || !userInput.fullName || !userInput.email || !userInput.phoneNumber) {
+            return res.status(400).json({ error: 'Thiếu thông tin' });
         }
         if (userInput.username.length < 3) return res.status(400).json({ error: 'username must be at least 3 characters' });
         if (userInput.password.length < 8) return res.status(400).json({ error: 'password must be at least 8 characters' });
 
-        // Require at least one contact: email or phone
-        if (!userInput.email && !userInput.phoneNumber) {
-            return res.status(400).json({ error: 'Provide at least one contact: email or phoneNumber' });
-        }
+
 
         // Validate email if provided
         if (userInput.email) {
