@@ -1,9 +1,7 @@
-import users from '../models/users.js';
 import userService from '../services/userService.js';
-import 'dotenv'
 
 
-const userContoller = {
+const userController = {
 
     getAllUser: async(req, res) =>{
         try {
@@ -27,8 +25,20 @@ const userContoller = {
         }
     },
     update: async (req, res) =>{
+        const userId = req.params.id;
+        const requesterId = req.user && req.user.id;
+        const requesterRole = req.user && req.user.role;
+
+        // allow if requester is 'bod' (admin) or updating their own record
+        // ensure numeric comparison for ids when possible
+        const numericUserId = Number(userId);
+        const isSelf = requesterId !== undefined && Number(requesterId) === numericUserId;
+        const isAdmin = requesterRole === 'bod';
+        if (!isAdmin && !isSelf) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
         try {
-            const userId = req.params.id;
             const {
                 username,
                 fullName,
@@ -45,4 +55,4 @@ const userContoller = {
     }
 
 };
-export default userContoller;
+export default userController;

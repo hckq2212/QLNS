@@ -11,6 +11,9 @@ opportunityRoute.get('/', checkToken, opportunityController.getAllOpportunities)
 // Get tất cả các cơ hội đang chờ duyệt
 opportunityRoute.get('/pending-opportunities', checkToken, opportunityController.getAllPendingOpportunities);
 
+// Get by creator
+opportunityRoute.get('/creator/:userId', checkToken, opportunityController.getByCreator);
+
 // Get single
 opportunityRoute.get('/:id', checkToken, opportunityController.getById);
 
@@ -28,7 +31,5 @@ opportunityRoute.post('/:id/approve', checkToken, requireRole('bod'), opportunit
 
 // Reject (requires auth and role 'bod')
 opportunityRoute.post('/:id/reject', checkToken, requireRole('bod'), opportunityController.reject);
-// Get by creator
-opportunityRoute.get('/creator/:userId', checkToken, opportunityController.getByCreator);
 
 export default opportunityRoute;
