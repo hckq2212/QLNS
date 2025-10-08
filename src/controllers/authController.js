@@ -5,17 +5,50 @@ import 'dotenv'
 
 const authController = {
     register: async (req, res) => {
+        // Extract and normalize inputs
+        const rawUsername = typeof req.body.username === 'string' ? req.body.username.trim() : '';
+        const rawPassword = typeof req.body.password === 'string' ? req.body.password : '';
+        const rawFullName = typeof req.body.fullName === 'string' ? req.body.fullName.trim() : (typeof req.body.full_name === 'string' ? req.body.full_name.trim() : '');
+        const rawPhone = typeof req.body.phoneNumber === 'string' ? req.body.phoneNumber.trim() : (typeof req.body.phone === 'string' ? req.body.phone.trim() : '');
+        const rawEmail = typeof req.body.email === 'string' ? req.body.email.trim() : '';
+        const role = req.body.role || 'staff';
+
         const userInput = {
-            username: req.body.username,
-            password: req.body.password,
-            fullName: req.body.fullName || req.body.full_name,
-            role: req.body.role || 'staff',
-            phoneNumber: req.body.phoneNumber || req.body.phone,
-            email: req.body.email
+            username: rawUsername.toLowerCase(),
+            password: rawPassword,
+            fullName: rawFullName,
+            role,
+            phoneNumber: rawPhone,
+            email: rawEmail.toLowerCase()
+        };
+
+        // Basic validations
+        if (!userInput.username || !userInput.password || !userInput.fullName) {
+            return res.status(400).json({ error: 'username, password and fullName are required' });
         }
-        if(!userInput.username || !userInput.password || !userInput.fullName || !userInput.phoneNumber || !userInput.email) {
-            return res.status(400).json({ error: 'Thiếu thông tin' });
+        if (userInput.username.length < 3) return res.status(400).json({ error: 'username must be at least 3 characters' });
+        if (userInput.password.length < 8) return res.status(400).json({ error: 'password must be at least 8 characters' });
+
+        // Require at least one contact: email or phone
+        if (!userInput.email && !userInput.phoneNumber) {
+            return res.status(400).json({ error: 'Provide at least one contact: email or phoneNumber' });
         }
+
+        // Validate email if provided
+        if (userInput.email) {
+            const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRe.test(userInput.email)) return res.status(400).json({ error: 'Invalid email format' });
+        }
+
+        // Validate phone if provided (basic)
+        if (userInput.phoneNumber) {
+            const phoneRe = /^[+]?\d[\d\s.-]{4,}$/;
+            if (!phoneRe.test(userInput.phoneNumber)) return res.status(400).json({ error: 'Invalid phone number format' });
+        }
+
+        // Validate role
+        const allowedRoles = ['admin','bod','sale','staff','partner'];
+        if (userInput.role && !allowedRoles.includes(userInput.role)) return res.status(400).json({ error: 'Invalid role' });
 
         try{
             const result = await authService.register(userInput);

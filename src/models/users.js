@@ -12,6 +12,16 @@ const users = {
     const result = await db.query('SELECT id, username, full_name, role, email, phone, status FROM "user" WHERE username = $1', [username]);
     return result.rows[0];
   },
+  async getUserByEmail(email) {
+    if (!email) return null;
+    const result = await db.query('SELECT id, username, full_name, role, email, phone, status, refresh_token FROM "user" WHERE lower(email) = lower($1)', [email]);
+    return result.rows[0];
+  },
+  async getUserByPhoneNumber(phone) {
+    if (!phone) return null;
+    const result = await db.query('SELECT id, username, full_name, role, email, phone, status, refresh_token FROM "user" WHERE phone = $1', [phone]);
+    return result.rows[0];
+  },
   // Returns full user row including id, password and refresh_token for auth flows
   async getAuthByUsername(username) {
     const result = await db.query('SELECT id, username, password, refresh_token, role FROM "user" WHERE username = $1', [username]);
@@ -30,6 +40,14 @@ const users = {
   },
   async getUserById(id) {
     const result = await db.query('SELECT id, username, full_name, role, email, phone, status, created_at, refresh_token  FROM "user" WHERE id = $1', [id]);
+    return result.rows[0];
+  },
+  async getUserByEmail(email){
+    const result = await db.query('SELECT id, username, full_name, role, email, phone, status, created_at  FROM "user" WHERE email = $1', [email]);
+    return result.rows[0];
+  },
+   async getUserByPhoneNumber(phone){
+    const result = await db.query('SELECT id, username, full_name, role, email, phone, status, created_at  FROM "user" WHERE phone = $1', [phone]);
     return result.rows[0];
   },
   // Update user profile fields. Allowed: username, full_name, phone, email, role, status

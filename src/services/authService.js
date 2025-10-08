@@ -20,11 +20,16 @@ function createToken(user){
 
 const authService = {
     register: async (userInput) => {
-        const existing = await users.getUserByUsername(userInput.username)
-        if (existing) {
-            return "Tài khoản đã tồn tại"
+        const existingUsername = await users.getUserByUsername(userInput.username);
+        const existingEmail = await users.getUserByEmail(userInput.email);
+        const existingPhone = await users.getUserByPhoneNumber(userInput.phoneNumber);
+        if (existingEmail) {
+            return "Địa chỉ email này đã được sử dụng"
+        } else if (existingUsername){
+            return "Tên tài khoản này đã được sử dụng"
+        } else if (existingPhone){
+            return "Số điện thoại này đã được sử dụng"
         }
-
         try {
             const hashedPassword = await bcrypt.hash(userInput.password, saltRounds);
             const newUser = await users.createUser(userInput.username, hashedPassword, userInput.fullName, userInput.role, userInput.phoneNumber, userInput.email);
