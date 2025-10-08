@@ -8,9 +8,11 @@ import contractRoute from './routes/contractRoute.js'
 import jobRoute from './routes/jobRoute.js'
 import debtRoute from './routes/debtRoute.js'
 import serviceRoute from './routes/serviceRoute.js'
+import corsMiddleware from './middleware/corsMiddleware.js'
 
 const app = express()
 app.use(express.json())
+app.use(corsMiddleware)
 const port = process.env.PORT || 3000
 
 
