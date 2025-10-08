@@ -28,10 +28,30 @@ const opportunityService = {
         const client = await db.connect();
         try {
             await client.query('BEGIN');
+
+            // compute expected_price as sum over services: (proposed_price || base_cost) * quantity
+            let computedExpected = 0;
+            for (const s of services) {
+                const serviceId = s.service_id;
+                const quantity = s.quantity != null ? s.quantity : 1;
+                const proposed = s.proposed_price != null ? Number(s.proposed_price) : null;
+
+                // fetch base_cost for service
+                const svcRes = await client.query('SELECT base_cost FROM service WHERE id = $1', [serviceId]);
+                if (!svcRes.rows || svcRes.rows.length === 0) {
+                    throw new Error(`service id ${serviceId} not found`);
+                }
+                const baseCostPerUnit = svcRes.rows[0].base_cost != null ? Number(svcRes.rows[0].base_cost) : 0;
+                const unitPrice = proposed != null ? proposed : baseCostPerUnit;
+                computedExpected += unitPrice * quantity;
+            }
+
+            const expectedToInsert = computedExpected || payload.expected_price || null;
+
             const createdOppRes = await client.query(
                 `INSERT INTO opportunity (customer_id, customer_temp, expected_price, description, created_by)
                  VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-                [payload.customer_id || null, payload.customer_temp || null, payload.expected_price || null, payload.description || null, payload.created_by || null]
+                [payload.customer_id || null, payload.customer_temp || null, expectedToInsert, payload.description || null, payload.created_by || null]
             );
             const createdOpp = createdOppRes.rows[0];
 
