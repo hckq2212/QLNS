@@ -1,0 +1,62 @@
+import projectService from '../services/projectService.js'
+
+const projectController = {
+    list: async (req, res) => {
+        try {
+            const result = await projectService.list();
+            return res.json(result);
+        } catch (err) {
+            console.error('project list error', err);
+            return res.status(500).json({ error: 'Internal server error' });
+        }
+    },
+
+    getById: async (req, res) => {
+        try {
+            const id = req.params.id;
+            const p = await projectService.getById(id);
+            if (!p) return res.status(404).json({ error: 'Project not found' });
+            return res.json(p);
+        } catch (err) {
+            console.error('project getById error', err);
+            return res.status(500).json({ error: 'Internal server error' });
+        }
+    },
+
+    create: async (req, res) => {
+        try {
+            const body = req.body || {};
+            const creatorId = req.user && req.user.id;
+            const created = await projectService.createProjectForContract(body.contract_id, body.name, body.description, body.start_date || null, creatorId);
+            return res.status(201).json(created);
+        } catch (err) {
+            console.error('project create error', err);
+            return res.status(400).json({ error: err.message || 'Bad request' });
+        }
+    },
+
+    assignJob: async (req, res) => {
+        try {
+            const projectId = req.params.id;
+            const { jobId, assignedType, assignedId, externalCost, overrideReason } = req.body || {};
+            const updated = await projectService.assignJob(projectId, jobId, assignedType, assignedId, externalCost, overrideReason);
+            return res.json(updated);
+        } catch (err) {
+            console.error('project assignJob error', err);
+            return res.status(400).json({ error: err.message || 'Bad request' });
+        }
+    },
+
+    close: async (req, res) => {
+        try {
+            const projectId = req.params.id;
+            const updated = await projectService.closeProject(projectId);
+            return res.json(updated);
+        } catch (err) {
+            console.error('project close error', err);
+            return res.status(400).json({ error: err.message || 'Bad request' });
+        }
+    }
+}
+
+export default projectController;

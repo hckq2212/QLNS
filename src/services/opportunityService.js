@@ -128,6 +128,15 @@ const opportunityService = {
             );
             const contract = contractRes.rows[0];
 
+            // Create a project linked to this contract so HR/PM can manage jobs
+            const projectName = `Project for Contract ${contract.id}`;
+            const projectDesc = op.description || null;
+            const projectRes = await client.query(
+                'INSERT INTO project (contract_id, name, description, start_date, created_by, created_at) VALUES ($1, $2, $3, $4, $5, now()) RETURNING *',
+                [contract.id, projectName, projectDesc, null, approverId]
+            );
+            const project = projectRes.rows[0];
+
             // Find all proposed services for this opportunity and create jobs
             const oppServicesRes = await client.query('SELECT * FROM opportunity_service WHERE opportunity_id = $1', [id]);
             const oppServices = oppServicesRes.rows || [];
@@ -149,9 +158,9 @@ const opportunityService = {
 
                 // assigned to approver by default (assigned_type 'user')
                 await client.query(
-                    `INSERT INTO job (contract_id, service_id, assigned_type, assigned_id, name, description, base_cost, external_cost, sale_price, status, progress_percent, created_by, created_at)
-                     VALUES ($1,$2,'user',$3,$4,$5,$6,$7,$8,'pending',0,$9, now()) RETURNING *`,
-                    [contract.id, s.service_id, approverId, jobName, jobDesc, baseCost, null, salePrice, approverId]
+                    `INSERT INTO job (contract_id, service_id, project_id, assigned_type, assigned_id, name, description, base_cost, external_cost, sale_price, status, progress_percent, created_by, created_at)
+                     VALUES ($1, $2, $3, 'user', $4, $5, $6, $7, $8, $9, 'pending', 0, $10, now()) RETURNING *`,
+                    [contract.id, s.service_id, project.id, approverId, jobName, jobDesc, baseCost, null, salePrice, approverId]
                 );
             }
 
@@ -167,6 +176,20 @@ const opportunityService = {
                 'INSERT INTO debt (contract_id, amount, due_date, status) VALUES ($1, $2, $3, $4) RETURNING id, contract_id, amount, due_date, status',
                 [contract.id, debtAmount, null, 'pending']
             );
+
+            // Notify HR/PM (users with role 'hr' or 'staff') to assign jobs
+            try {
+                const notifyUsersRes = await client.query("SELECT id FROM \"user\" WHERE role IN ('hr','staff')");
+                const notifyUsers = notifyUsersRes.rows || [];
+                const title = 'Cần phân công job';
+                const payload = JSON.stringify({ contractId: contract.id, projectId: project.id, opportunityId: id });
+                for (const u of notifyUsers) {
+                    await client.query('INSERT INTO notification (user_id, title, type, payload, is_read, created_at) VALUES ($1,$2,$3,$4,false, now())', [u.id, title, 'assignment_request', payload]);
+                }
+            } catch (nerr) {
+                // non-fatal: log and continue; notification failure shouldn't roll back the whole approval
+                console.error('Failed to create notifications for HR/PM:', nerr);
+            }
 
             await client.query('COMMIT');
 

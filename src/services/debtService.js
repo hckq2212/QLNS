@@ -18,6 +18,16 @@ const debtService = {
         const result = await debts.create(contractId, amount, dueDate, status);
         return result;
     }
+    ,
+    payPartial: async (debtId, payAmount) => {
+        return await debts.payPartial(debtId, payAmount);
+    },
+
+    runReminders: async () => {
+        // simple implementation: find pending debts with due dates and return them for external processing
+        const rows = await debts.findDebtsForReminders();
+        return rows;
+    }
 }
 
 export default debtService
