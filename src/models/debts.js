@@ -30,7 +30,7 @@ const debts = {
     ,
     async payPartial(id, payAmount = 0) {
         if (!id) throw new Error('id required');
-        if (isNaN(payAmount) || Number(payAmount) <= 0) throw new Error('payAmount must be positive');
+        if (isNaN(payAmount) || Number(payAmount) <= 0) res.status(400).send('payAmount must be positive');
 
         // Use a transaction to avoid races
         const client = await db.connect();
