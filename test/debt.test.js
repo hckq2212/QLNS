@@ -29,6 +29,14 @@ import debtService from '../src/services/debtService.js';
     assert.ok(res, 'should return updated debt row');
     assert.strictEqual(res.id, 10);
     assert.strictEqual(res.status, 'paid');
+    await assert.rejects(
+      () => debtService.payPartial(10, 0),
+      /payAmount must be positive/
+    );
+    await assert.rejects(
+      () => debtService.payPartial(10, -1),
+      /payAmount must be positive/
+    );
     console.log('debt payPartial test passed');
   } catch (err) {
     console.error('debt test failed', err);

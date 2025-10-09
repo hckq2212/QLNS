@@ -30,7 +30,11 @@ const debts = {
     ,
     async payPartial(id, payAmount = 0) {
         if (!id) throw new Error('id required');
-        if (isNaN(payAmount) || Number(payAmount) <= 0) res.status(400).send('payAmount must be positive');
+
+        const amountToPay = Number(payAmount);
+        if (!Number.isFinite(amountToPay) || amountToPay <= 0) {
+            throw new Error('payAmount must be positive');
+        }
 
         // Use a transaction to avoid races
         const client = await db.connect();
@@ -45,7 +49,7 @@ const debts = {
             const row = curRes.rows[0];
             const currentPaid = row.paid_amount != null ? Number(row.paid_amount) : 0;
             const total = row.amount != null ? Number(row.amount) : 0;
-            let newPaid = currentPaid + Number(payAmount);
+            let newPaid = currentPaid + amountToPay;
             let newStatus = row.status;
             let paidAt = null;
             if (newPaid >= total) {
