@@ -6,11 +6,11 @@ import requireRole from '../middleware/roleMiddleware.js'
 const userRoute = express.Router()
 
 // List users (admin only)
-userRoute.get('/', checkToken, requireRole('bod'), userController.getAllUser)
+userRoute.get('/',  requireRole('bod'), userController.getAllUser)
 
 // Get single user (admin or the user themselves)
-userRoute.get('/:id', checkToken, userController.getUserById)
-userRoute.put('/:id', checkToken, userController.update)
+userRoute.get('/:id', userController.getUserById)
+userRoute.put('/:id',  userController.update)
 
 
 

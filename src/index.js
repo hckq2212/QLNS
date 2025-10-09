@@ -12,6 +12,7 @@ import projectRoute from './routes/projectRoute.js'
 import contractAppendixRoute from './routes/contractAppendixRoute.js'
 import debtPaymentController from './controllers/debtPaymentController.js'
 import corsMiddleware from './middleware/corsMiddleware.js'
+import auth from '../src/middleware/authMiddleware.js'
 
 const app = express()
 app.use(express.json())
@@ -20,15 +21,15 @@ const port = process.env.PORT || 3000
 
 
 app.use('/auth', authRoute)
-app.use('/opportunity', opportunityRoute)
-app.use('/user',userRoute)
-app.use('/customer',customerRoute)
-app.use('/contract',contractRoute)
-app.use('/job',jobRoute)
-app.use('/debt',debtRoute)
-app.use('/service', serviceRoute)
-app.use('/project', projectRoute)
-app.use('/appendix', contractAppendixRoute)
+app.use('/opportunity',auth, opportunityRoute)
+app.use('/user',auth,userRoute)
+app.use('/customer',auth,customerRoute)
+app.use('/contract',auth,contractRoute)
+app.use('/job',auth,jobRoute)
+app.use('/debt',auth,debtRoute)
+app.use('/service',auth, serviceRoute)
+app.use('/project',auth, projectRoute)
+app.use('/appendix',auth, contractAppendixRoute)
 
 // endpoints for debt payments / reminders
 app.post('/debts/:id/pay', debtPaymentController.payPartial)
