@@ -77,7 +77,9 @@ const opportunityController = {
             const id = req.params.id;
             const approverId = req.user && req.user.id;
             if (!approverId) return res.status(401).json({ error: 'Unauthorized' });
-            const result = await opportunityService.approveOpportunity(id, approverId);
+            // accept optional payment plan in request body: { debts: [{amount, due_date}], installments: n }
+            const paymentPlan = req.body || {};
+            const result = await opportunityService.approveOpportunity(id, approverId, paymentPlan);
             // result expected: { opportunity, contract }
             if (!result || !result.opportunity) {
                 return res.status(404).json({ error: 'Opportunity not found or already approved/rejected' });

@@ -1,6 +1,6 @@
 import db from '../config/db.js'
 
-const opportunityServices = {
+const opportunityServices    = {
     // insert multiple opportunity_service rows; conn can be a client or pool
     async createMany(opportunityId, services = [], conn = db) {
         if (!opportunityId) throw new Error('opportunityId required');
@@ -10,6 +10,7 @@ const opportunityServices = {
         const created = [];
         for (const s of services) {
             const serviceId = s.service_id;
+            const serviceJobId = s.service_job_id || null;
             if (!serviceId) throw new Error('service_id is required for each service item');
 
             const quantity = s.quantity != null ? s.quantity : 1;
@@ -26,10 +27,19 @@ const opportunityServices = {
                 throw new Error(`service id ${serviceId} not found`);
             }
 
-            const res = await runner.query(
-                'INSERT INTO opportunity_service (opportunity_id, service_id, quantity, proposed_price, note) VALUES ($1,$2,$3,$4,$5) RETURNING *',
-                [opportunityId, serviceId, quantity, proposed, note]
-            );
+            // try to insert service_job_id if provided (DB must have column)
+            let res;
+            if (serviceJobId) {
+                res = await runner.query(
+                    'INSERT INTO opportunity_service (opportunity_id, service_id, service_job_id, quantity, proposed_price, note) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
+                    [opportunityId, serviceId, serviceJobId, quantity, proposed, note]
+                );
+            } else {
+                res = await runner.query(
+                    'INSERT INTO opportunity_service (opportunity_id, service_id, quantity, proposed_price, note) VALUES ($1,$2,$3,$4,$5) RETURNING *',
+                    [opportunityId, serviceId, quantity, proposed, note]
+                );
+            }
             created.push(res.rows[0]);
         }
         return created;

@@ -79,7 +79,7 @@ const opportunityService = {
         return await opportunities.remove(id);
     },
 
-    approveOpportunity: async (id, approverId) => {
+    approveOpportunity: async (id, approverId, paymentPlan = null) => {
         if (!id || !approverId) throw new Error('id and approverId required');
 
         // Load opportunity first
@@ -143,11 +143,24 @@ const opportunityService = {
 
             for (const s of oppServices) {
                 // get service defaults
+                // fetch service and optional service_job if provided in opportunity_service
                 const svcRes = await client.query('SELECT name, base_cost FROM service WHERE id = $1', [s.service_id]);
                 const svc = svcRes.rows[0] || {};
                 const quantity = s.quantity || 1;
                 const proposed = s.proposed_price != null ? Number(s.proposed_price) : null;
-                const baseCostPerUnit = svc.base_cost != null ? Number(svc.base_cost) : 0;
+
+                // if opportunity_service has service_job_id, try to load it
+                let serviceJobId = null;
+                let sjBaseCostPerUnit = null;
+                if (s.service_job_id) {
+                    const sjRes = await client.query('SELECT id, base_cost FROM service_job WHERE id = $1', [s.service_job_id]);
+                    if (sjRes.rows && sjRes.rows.length > 0) {
+                        serviceJobId = sjRes.rows[0].id;
+                        sjBaseCostPerUnit = sjRes.rows[0].base_cost != null ? Number(sjRes.rows[0].base_cost) : null;
+                    }
+                }
+
+                const baseCostPerUnit = sjBaseCostPerUnit != null ? sjBaseCostPerUnit : (svc.base_cost != null ? Number(svc.base_cost) : 0);
 
                 // aggregate by quantity: set sale_price = proposed * quantity (fallback to base cost * quantity)
                 const salePrice = proposed != null ? proposed * quantity : baseCostPerUnit * quantity;
@@ -158,9 +171,9 @@ const opportunityService = {
 
                 // assigned to approver by default (assigned_type 'user')
                 await client.query(
-                    `INSERT INTO job (contract_id, service_id, project_id, assigned_type, assigned_id, name, description, base_cost, external_cost, sale_price, status, progress_percent, created_by, created_at)
-                     VALUES ($1, $2, $3, 'user', $4, $5, $6, $7, $8, $9, 'pending', 0, $10, now()) RETURNING *`,
-                    [contract.id, s.service_id, project.id, approverId, jobName, jobDesc, baseCost, null, salePrice, approverId]
+                    `INSERT INTO job (contract_id, service_id, service_job_id, project_id, assigned_type, assigned_id, name, description, base_cost, external_cost, sale_price, status, progress_percent, created_by, created_at)
+                     VALUES ($1, $2, $3, $4, 'user', $5, $6, $7, $8, $9, $10, 'pending', 0, $11, now()) RETURNING *`,
+                    [contract.id, s.service_id, serviceJobId, project.id, approverId, jobName, jobDesc, baseCost, null, salePrice, approverId]
                 );
             }
 
@@ -170,12 +183,52 @@ const opportunityService = {
             const refreshedContractRes = await client.query('SELECT * FROM contract WHERE id = $1', [contract.id]);
             const refreshedContract = refreshedContractRes.rows[0] || contract;
 
-            // Create a debt for this contract with status 'pending' and amount = total_revenue
-            const debtAmount = refreshedContract.total_revenue != null ? refreshedContract.total_revenue : 0;
-            const debtRes = await client.query(
-                'INSERT INTO debt (contract_id, amount, due_date, status) VALUES ($1, $2, $3, $4) RETURNING id, contract_id, amount, due_date, status',
-                [contract.id, debtAmount, null, 'pending']
-            );
+            // Create debt(s) for this contract.
+            const totalRevenue = refreshedContract.total_revenue != null ? Number(refreshedContract.total_revenue) : 0;
+            let debtRes = null;
+
+            if (paymentPlan && Array.isArray(paymentPlan.debts) && paymentPlan.debts.length > 0) {
+                // use explicit debts array: [{ amount, due_date }, ...]
+                const created = [];
+                for (const d of paymentPlan.debts) {
+                    const amt = Number(d.amount || 0);
+                    const due = d.due_date || null;
+                    const r = await client.query(
+                        'INSERT INTO debt (contract_id, amount, due_date, status) VALUES ($1, $2, $3, $4) RETURNING id, contract_id, amount, due_date, status',
+                        [contract.id, amt, due, 'pending']
+                    );
+                    created.push(r.rows[0]);
+                }
+                debtRes = { rows: created };
+            } else if (paymentPlan && Number.isInteger(paymentPlan.installments) && paymentPlan.installments > 1) {
+                // split into equal installments (last installment gets remainder)
+                const n = paymentPlan.installments;
+                const base = Math.floor((totalRevenue / n) * 100) / 100; // two decimals
+                const created = [];
+                let accumulated = 0;
+                for (let i = 0; i < n; i++) {
+                    let amt = base;
+                    if (i === n - 1) {
+                        amt = Math.round((totalRevenue - accumulated) * 100) / 100;
+                    }
+                    accumulated += amt;
+                    const due = null; // allow client to update due_date later or send via paymentPlan.debts
+                    const r = await client.query(
+                        'INSERT INTO debt (contract_id, amount, due_date, status) VALUES ($1, $2, $3, $4) RETURNING id, contract_id, amount, due_date, status',
+                        [contract.id, amt, due, 'pending']
+                    );
+                    created.push(r.rows[0]);
+                }
+                debtRes = { rows: created };
+            } else {
+                // default: single debt with entire amount
+                const debtAmount = totalRevenue;
+                const r = await client.query(
+                    'INSERT INTO debt (contract_id, amount, due_date, status) VALUES ($1, $2, $3, $4) RETURNING id, contract_id, amount, due_date, status',
+                    [contract.id, debtAmount, null, 'pending']
+                );
+                debtRes = r;
+            }
 
             // Notify HR/PM (users with role 'hr' or 'staff') to assign jobs
             try {
