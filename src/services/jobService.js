@@ -9,6 +9,11 @@ const jobService = {
         const result = await jobs.getById(jobId);
         return result;
     },
+    update: async (jobId, fields) => {
+        if (!jobId) throw new Error('jobId required');
+        const result = await jobs.update(jobId, fields);
+        return result;
+    },
 
 }
 

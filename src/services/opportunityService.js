@@ -223,18 +223,22 @@ const opportunityService = {
                     if (maxPricePerUnit != null && proposed > maxPricePerUnit) {
                         throw new Error('Proposed price exceeds allowed maximum');
                     }
-                    salePricePerUnit = proposed;
+                    salePricePerUnit = Number(proposed);
                 } else {
-                    salePricePerUnit = baseCostPerUnit * (1 + (defaultMargin || 0));
-                    if (minPricePerUnit != null && salePricePerUnit < minPricePerUnit) {
-                        salePricePerUnit = minPricePerUnit;
+                    // No proposed price: default to base cost per unit. If the service_job defines a margin, apply it.
+                    const base = Number(baseCostPerUnit || 0);
+                    if (!Number.isFinite(base)) {
+                        throw new Error('Invalid base cost calculated for job');
                     }
-                    if (maxPricePerUnit != null && salePricePerUnit > maxPricePerUnit) {
-                        salePricePerUnit = maxPricePerUnit;
+                    if (serviceJob && serviceJob.margin != null && !Number.isNaN(Number(serviceJob.margin))) {
+                        const marg = Number(serviceJob.margin);
+                        salePricePerUnit = Math.round(base * (1 + marg / 100) * 100) / 100; // round to 2 decimals
+                    } else {
+                        salePricePerUnit = base;
                     }
                 }
 
-                // aggregate by quantity: set sale_price = proposed * quantity (fallback to base cost * quantity)
+                // aggregate by quantity: compute sale_price and base_cost
                 const salePrice = Number(salePricePerUnit) * quantity;
                 const baseCost = Number(baseCostPerUnit) * quantity;
                 if (!Number.isFinite(baseCost) || baseCost < 0) {

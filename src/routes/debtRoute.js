@@ -6,6 +6,7 @@ const debtRoute = express.Router();
 
 debtRoute.get('/', debtController.getAll);
 debtRoute.get('/:id', debtController.getById)
-debtRoute.patch('/:id', checkToken, debtController.updateStatus)
+debtRoute.patch('/:id', checkToken, debtController.updateStatus);
+debtRoute.patch('/:id/pay', checkToken, debtController.payPartial);
 
 export default debtRoute;

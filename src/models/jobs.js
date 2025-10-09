@@ -29,6 +29,29 @@ const jobs = {
         const result = await runner.query('UPDATE job SET assigned_type = $1, assigned_id = $2, updated_at = now() WHERE id = $3 RETURNING *', [assignedType, assignedId, jobId]);
         return result.rows[0];
     }
+
+    ,
+
+    async update(id, fields = {}, conn = db) {
+        if (!id) throw new Error('id required');
+        const allowed = ['status', 'progress_percent', 'external_cost', 'updated_at'];
+        const sets = [];
+        const vals = [];
+        let idx = 1;
+        for (const k of Object.keys(fields)) {
+            if (!allowed.includes(k)) continue;
+            sets.push(`${k} = $${idx}`);
+            vals.push(fields[k]);
+            idx++;
+        }
+        if (sets.length === 0) throw new Error('no updatable fields provided');
+        // append updated_at
+        sets.push(`updated_at = now()`);
+        const q = `UPDATE job SET ${sets.join(', ')} WHERE id = $${idx} RETURNING *`;
+        vals.push(id);
+        const result = await conn.query(q, vals);
+        return result.rows[0];
+    }
 }
 
 export default jobs;
