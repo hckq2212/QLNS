@@ -174,7 +174,7 @@ const opportunityService = {
                 // get service defaults
                 // fetch service and optional service_job if provided in opportunity_service
                const svcRes = await client.query(
-                    'SELECT name, base_cost, min_price, max_price, default_margin FROM service WHERE id = $1',
+                    'SELECT name, base_cost, min_price, max_price FROM service WHERE id = $1',
                     [s.service_id]
                 );
                 if (!svcRes.rows || svcRes.rows.length === 0) {
@@ -214,9 +214,6 @@ const opportunityService = {
                 const maxPricePerUnit = serviceJob && serviceJob.max_price != null
                     ? Number(serviceJob.max_price)
                     : (svc.max_price != null ? Number(svc.max_price) : null);
-                const defaultMargin = serviceJob && serviceJob.margin != null
-                    ? Number(serviceJob.margin)
-                    : (svc.default_margin != null ? Number(svc.default_margin) : 0);
 
                 let salePricePerUnit;
                 if (proposed != null) {
@@ -251,12 +248,11 @@ const opportunityService = {
 
                 const jobName = (serviceJob && serviceJob.name) || svc.name || `Service ${s.service_id}`;
                 const jobDesc = op.description || null;
-                const jobNote = s.note || null;
 
-                // assigned to approver by default (assigned_type 'user')
+                // assigned to approver by default (assigned_type 'user') — use approverId as temporary assignee
                 await client.query(
-                    `INSERT INTO job (contract_id, service_id, service_job_id, project_id, name, description, note, base_cost, external_cost, sale_price, status, progress_percent, assigned_type, assigned_id, created_by, created_at)
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NULL, $9, 'pending', 0, NULL, NULL, $10, now()) RETURNING *`,
+                    `INSERT INTO job (contract_id, service_id, service_job_id, project_id, name, description, base_cost, external_cost, sale_price, status, progress_percent, assigned_type, assigned_id, created_by, created_at)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, NULL, $8, 'pending', 0, 'user', $9, $9, now()) RETURNING *`,
                     [
                         contract.id,
                         s.service_id,
@@ -264,7 +260,6 @@ const opportunityService = {
                         project.id,
                         jobName,
                         jobDesc,
-                        jobNote,
                         baseCost,
                         salePrice,
                         approverId
