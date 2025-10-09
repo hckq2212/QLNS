@@ -38,8 +38,8 @@ const projectController = {
     assignJob: async (req, res) => {
         try {
             const projectId = req.params.id;
-            const { jobId, assignedType, assignedId, externalCost, overrideReason } = req.body || {};
-            const updated = await projectService.assignJob(projectId, jobId, assignedType, assignedId, externalCost, overrideReason);
+            const { jobId, assignedType, assignedId, externalCost, overrideReason, saveToCatalog } = req.body || {};
+            const updated = await projectService.assignJob(projectId, jobId, assignedType, assignedId, externalCost, overrideReason, saveToCatalog);
             return res.json(updated);
         } catch (err) {
             console.error('project assignJob error', err);

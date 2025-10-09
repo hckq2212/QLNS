@@ -27,6 +27,18 @@ const opportunityServices    = {
                 throw new Error(`service id ${serviceId} not found`);
             }
 
+            if (serviceJobId) {
+                const serviceJobCheck = await runner.query('SELECT service_id FROM service_job WHERE id = $1', [serviceJobId]);
+                if (!serviceJobCheck.rows || serviceJobCheck.rows.length === 0) {
+                    throw new Error(`service_job id ${serviceJobId} not found`);
+                }
+                const sjServiceId = serviceJobCheck.rows[0].service_id;
+                if (sjServiceId != null && Number(sjServiceId) !== Number(serviceId)) {
+                    throw new Error('service_job does not belong to the provided service');
+                }
+            }
+
+
             // try to insert service_job_id if provided (DB must have column)
             let res;
             if (serviceJobId) {
