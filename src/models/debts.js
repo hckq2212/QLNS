@@ -36,7 +36,8 @@ const debts = {
         const client = await db.connect();
         try {
             await client.query('BEGIN');
-            const curRes = await client.query('SELECT id, amount, paid_amount FROM debt WHERE id = $1 FOR UPDATE', [id]);
+            // also select status and paid_at so we don't accidentally overwrite them with NULL
+            const curRes = await client.query('SELECT id, amount, paid_amount, status, paid_at FROM debt WHERE id = $1 FOR UPDATE', [id]);
             if (!curRes.rows || curRes.rows.length === 0) {
                 await client.query('ROLLBACK');
                 return null;

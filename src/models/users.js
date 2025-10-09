@@ -36,14 +36,6 @@ const users = {
     const result = await db.query('SELECT id, username, full_name, role, email, phone, status, created_at, refresh_token  FROM "user" WHERE id = $1', [id]);
     return result.rows[0];
   },
-  async getUserByEmail(email){
-    const result = await db.query('SELECT id, username, full_name, role, email, phone, status, created_at  FROM "user" WHERE email = $1', [email]);
-    return result.rows[0];
-  },
-   async getUserByPhoneNumber(phone){
-    const result = await db.query('SELECT id, username, full_name, role, email, phone, status, created_at  FROM "user" WHERE phone = $1', [phone]);
-    return result.rows[0];
-  },
   async update(id, fields = {}) {
     const allowed = ['username', 'full_name', 'phone', 'email', 'role', 'status'];
     const set = [];
