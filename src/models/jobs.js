@@ -34,7 +34,7 @@ const jobs = {
 
     async update(id, fields = {}, conn = db) {
         if (!id) throw new Error('id required');
-        const allowed = ['status', 'progress_percent', 'external_cost', 'updated_at'];
+        const allowed = ['status', 'progress_percent', 'external_cost'];
         const sets = [];
         const vals = [];
         let idx = 1;
@@ -49,8 +49,19 @@ const jobs = {
         sets.push(`updated_at = now()`);
         const q = `UPDATE job SET ${sets.join(', ')} WHERE id = $${idx} RETURNING *`;
         vals.push(id);
-        const result = await conn.query(q, vals);
-        return result.rows[0];
+
+        let client = conn;
+        let usedClient = null;
+        try {
+            if (conn === db) {
+                usedClient = await db.connect();
+                client = usedClient;
+            }
+            const result = await client.query(q, vals);
+            return result.rows[0];
+        } finally {
+            if (usedClient && usedClient.release) usedClient.release();
+        }
     }
 }
 
