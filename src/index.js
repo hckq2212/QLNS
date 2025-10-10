@@ -11,12 +11,10 @@ import serviceRoute from './routes/serviceRoute.js'
 import projectRoute from './routes/projectRoute.js'
 import contractAppendixRoute from './routes/contractAppendixRoute.js'
 import debtPaymentController from './controllers/debtPaymentController.js'
-import corsMiddleware from './middleware/corsMiddleware.js'
 import auth from '../src/middleware/authMiddleware.js'
 
 const app = express()
 app.use(express.json())
-app.use(corsMiddleware)
 const port = process.env.PORT || 3000
 
 
@@ -31,9 +29,7 @@ app.use('/service',auth, serviceRoute)
 app.use('/project',auth, projectRoute)
 app.use('/appendix',auth, contractAppendixRoute)
 
-// endpoints for debt payments / reminders
-app.post('/debts/:id/pay', debtPaymentController.payPartial)
-app.get('/debts/reminders', debtPaymentController.reminders)
+
 
 app.get('/',(req, res) =>{
     res.status(200).send("Hello word")

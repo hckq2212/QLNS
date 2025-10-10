@@ -1,4 +1,5 @@
 import authService from '../services/authService.js';
+import roles from '../models/roles.js';
 import 'dotenv'
 
 
@@ -43,9 +44,18 @@ const authController = {
             if (!phoneRe.test(userInput.phoneNumber)) return res.status(400).json({ error: 'Invalid phone number format' });
         }
 
-        // Validate role
-        const allowedRoles = ['admin','bod','sale','staff','partner'];
-        if (userInput.role && !allowedRoles.includes(userInput.role)) return res.status(400).json({ error: 'Invalid role' });
+        // Validate role against DB
+        let desiredRole = userInput.role || 'staff';
+        const foundRole = await roles.getRoleByName(desiredRole);
+        if (!foundRole) {
+            // fallback: try 'staff'
+            const fallback = await roles.getRoleByName('staff');
+            if (!fallback) return res.status(400).json({ error: 'Invalid role and no fallback role configured' });
+            desiredRole = fallback.name;
+        } else {
+            desiredRole = foundRole.name;
+        }
+        userInput.role = desiredRole;
 
         try{
             const result = await authService.register(userInput);
@@ -78,7 +88,7 @@ const authController = {
 
         try{
             const result = await authService.login(userInput)
-            if (typeof result === 'string') return res.status(401).json({ error: result });
+            // if (typeof result === 'string') return res.status(401).json({ error: result });
             return res.json(result)
         }catch(err){
             console.error('Login error:', err);

@@ -6,33 +6,33 @@ import requireRole from '../middleware/roleMiddleware.js'
 const opportunityRoute = express.Router();
 
 // List all - only allowed for role 'sale'
-opportunityRoute.get('/', checkToken, opportunityController.getAllOpportunities);
+opportunityRoute.get('/' , opportunityController.getAllOpportunities);
 
 // Get tất cả các cơ hội đang chờ duyệt
-opportunityRoute.get('/pending-opportunities', checkToken, opportunityController.getAllPendingOpportunities);
+opportunityRoute.get('/pending-opportunities',  opportunityController.getAllPendingOpportunities);
 
 // Get by creator
-opportunityRoute.get('/creator/:userId', checkToken, opportunityController.getByCreator);
+opportunityRoute.get('/creator/:userId', opportunityController.getByCreator);
 
 // Get single
-opportunityRoute.get('/:id', checkToken, opportunityController.getById);
+opportunityRoute.get('/:id',  opportunityController.getById);
 
 // Create
-opportunityRoute.post('/', checkToken, opportunityController.create);
+opportunityRoute.post('/',  opportunityController.create);
 
 // Update
-opportunityRoute.patch('/:id', checkToken, opportunityController.update);
+opportunityRoute.patch('/:id', opportunityController.update);
 
 // Delete
-opportunityRoute.delete('/:id', checkToken, opportunityController.remove);
+opportunityRoute.delete('/:id', opportunityController.remove);
 
 // Approve (requires auth and role 'bod')
-opportunityRoute.post('/:id/approve', checkToken, requireRole('bod'), opportunityController.approve);
+opportunityRoute.post('/:id/approve', requireRole('bod'), opportunityController.approve);
 
 // Reject (requires auth and role 'bod')
-opportunityRoute.post('/:id/reject', checkToken, requireRole('bod'), opportunityController.reject);
+opportunityRoute.post('/:id/reject', requireRole('bod'), opportunityController.reject);
 
 // Submit draft opportunity to BOD (sale)
-opportunityRoute.post('/:id/submit', checkToken, requireRole('sale'), opportunityController.submit);
+opportunityRoute.post('/:id/submit', requireRole('sale'), opportunityController.submit);
 
 export default opportunityRoute;

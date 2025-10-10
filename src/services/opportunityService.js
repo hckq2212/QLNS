@@ -356,7 +356,8 @@ const opportunityService = {
 
             // Notify HR/PM (users with role 'hr' or 'staff') to assign jobs
             try {
-                const notifyUsersRes = await client.query("SELECT id FROM \"user\" WHERE role IN ('hr','staff')");
+                // role is now stored in separate table; join to resolve users with role names
+                const notifyUsersRes = await client.query("SELECT u.id FROM \"user\" u JOIN \"role\" r ON r.id = u.role_id WHERE r.name IN ('hr','staff')");
                 const notifyUsers = notifyUsersRes.rows || [];
                 const title = 'Cần phân công job';
                 const payload = JSON.stringify({ contractId: contract.id, projectId: project.id, opportunityId: id });
