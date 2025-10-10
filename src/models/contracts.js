@@ -23,6 +23,13 @@ const contracts = {
     ,
     async update(id, fields = {}) {
         if (!id) throw new Error('id required');
+        // if trying to change proposal_file_url, ensure contract is not already approved
+        if (Object.prototype.hasOwnProperty.call(fields, 'proposal_file_url')) {
+            const cur = await db.query('SELECT status FROM contract WHERE id = $1', [id]);
+            if (cur.rows && cur.rows.length > 0) {
+                if (cur.rows[0].status === 'approved') throw new Error('proposal_file_url cannot be changed after approval');
+            }
+        }
         const allowed = ['proposal_file_url', 'status', 'approved_by', 'signed_file_url', 'legal_confirmed_at', 'deployed_at', 'total_cost', 'total_revenue'];
         const set = [];
         const params = [];
@@ -141,5 +148,13 @@ const contracts = {
             client.release();
         }
     }
+
+    ,
+    async updateProjectAck(projectId, userId) {
+        if (!projectId) throw new Error('projectId required');
+        const result = await db.query('UPDATE project SET lead_ack_at = now(), lead_ack_by = $1 WHERE id = $2 RETURNING *', [userId, projectId]);
+        return result.rows[0];
+    }
 }
 export default contracts;
+

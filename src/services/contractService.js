@@ -62,6 +62,13 @@ const contractService = {
         const updated = await contracts.deployContract(id);
         return updated;
     }
+
+    ,
+    ackProject: async (projectId, userId) => {
+        // simple wrapper to mark lead_ack_at
+        const result = await contracts.updateProjectAck(projectId, userId);
+        return result;
+    }
 }
 
 export default contractService;

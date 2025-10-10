@@ -4,7 +4,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-  "test": "node test/paymentPlan.test.js && node test/opportunityService.test.js && node test/debt.test.js && node test/job.test.js",
+  "test": "mocha --exit \"test/**/*.mocha.test.js\" && node test/paymentPlan.test.js && node test/opportunityService.test.js && node test/debt.test.js && node test/job.test.js",
     "start": "nodemon src/index.js"
   },
   "author": "",
@@ -17,5 +17,10 @@
     "jsonwebtoken": "^9.0.2",
     "nodemon": "^3.1.10",
     "pg": "^8.16.3"
+  }
+  ,
+  "devDependencies": {
+    "mocha": "^10.2.0",
+    "chai": "^4.3.7"
   }
 }
