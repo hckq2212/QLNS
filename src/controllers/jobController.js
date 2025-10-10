@@ -7,6 +7,7 @@ const jobController = {
             return res.json(result);
         }catch(err){
             console.error(`Lỗi khi get all công việc: ${err}`)
+            return res.status(500).json({ error: 'Internal server error' });
         }
     },
     getById: async (req, res) => {
@@ -16,6 +17,7 @@ const jobController = {
             return res.json(result);
         }catch(err){
             console.error(`Looix khi get Job by id: ${err}`)
+            return res.status(500).json({ error: 'Internal server error' });
         }
     }
     ,

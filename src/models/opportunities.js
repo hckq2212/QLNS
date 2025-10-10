@@ -9,8 +9,12 @@ const opportunities = {
         const result = await db.query("SELECT * FROM opportunity WHERE status = 'pending'");
         return result.rows;
     },
-    async getById(id) {
-        const result = await db.query('SELECT * FROM opportunity WHERE id = $1 FOR UPDATE', [id]);
+    async getById(id, forUpdate = false) {
+        if (forUpdate) {
+            const result = await db.query('SELECT * FROM opportunity WHERE id = $1 FOR UPDATE', [id]);
+            return result.rows[0];
+        }
+        const result = await db.query('SELECT * FROM opportunity WHERE id = $1', [id]);
         return result.rows[0];
     },
 
