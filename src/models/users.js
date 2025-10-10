@@ -1,60 +1,129 @@
 import db from "../config/db.js";
+import roles from "./roles.js";
+
+// NOTE: This project recently moved roles into a separate table ("role").
+// The helpers below aim to be backward compatible by returning `role` as a string
+// on returned user objects while storing `role_id` in the "user" table.
 
 const users = {
   async getAll() {
-    const result = await db.query('SELECT username, full_name, role, email, phone, status FROM "user"');
+    const result = await db.query(
+      'SELECT u.id, u.username, u.full_name, r.name as role, u.email, u.phone, u.status FROM "user" u LEFT JOIN "role" r ON r.id = u.role_id'
+    );
     return result.rows;
   },
+
   async getUserByUsername(username) {
-    const result = await db.query('SELECT id, username, full_name, role, email, phone, status FROM "user" WHERE username = $1', [username]);
+    const result = await db.query(
+      'SELECT u.id, u.username, u.full_name, r.name as role, u.email, u.phone, u.status, u.refresh_token, u.role_id FROM "user" u LEFT JOIN "role" r ON r.id = u.role_id WHERE u.username = $1',
+      [username]
+    );
     return result.rows[0];
   },
+
   async getUserByEmail(email) {
     if (!email) return null;
-    const result = await db.query('SELECT id, username, full_name, role, email, phone, status, refresh_token FROM "user" WHERE lower(email) = lower($1)', [email]);
+    const result = await db.query(
+      'SELECT u.id, u.username, u.full_name, r.name as role, u.email, u.phone, u.status, u.refresh_token, u.role_id FROM "user" u LEFT JOIN "role" r ON r.id = u.role_id WHERE lower(u.email) = lower($1)',
+      [email]
+    );
     return result.rows[0];
   },
+
   async getUserByPhoneNumber(phone) {
     if (!phone) return null;
-    const result = await db.query('SELECT id, username, full_name, role, email, phone, status, refresh_token FROM "user" WHERE phone = $1', [phone]);
+    const result = await db.query(
+      'SELECT u.id, u.username, u.full_name, r.name as role, u.email, u.phone, u.status, u.refresh_token, u.role_id FROM "user" u LEFT JOIN "role" r ON r.id = u.role_id WHERE u.phone = $1',
+      [phone]
+    );
     return result.rows[0];
   },
+
   async getAuthByUsername(username) {
-    const result = await db.query('SELECT id, username, password, refresh_token, role FROM "user" WHERE username = $1', [username]);
+    const result = await db.query(
+      'SELECT u.id, u.username, u.password, u.refresh_token, r.name as role, u.role_id FROM "user" u LEFT JOIN "role" r ON r.id = u.role_id WHERE u.username = $1',
+      [username]
+    );
     const row = result.rows[0];
     if (!row) return null;
     return row;
   },
+
+  // role param may be a role name (string) or a numeric id. If a name is given we
+  // resolve it to an id using the roles helper.
   async createUser(username, passwordHash, full_name, role, phoneNumber, email) {
+    let roleId = null;
+    if (role !== undefined && role !== null) {
+      if (typeof role === 'number') {
+        roleId = role;
+      } else if (/^\d+$/.test(String(role))) {
+        roleId = Number(role);
+      } else {
+        const r = await roles.getRoleByName(role);
+        roleId = r ? r.id : null;
+      }
+    }
+
     const result = await db.query(
-      'INSERT INTO "user" (username, password, full_name, role, phone, email) VALUES($1, $2, $3, $4, $5, $6) RETURNING id, username, full_name, role, email, phone, status, created_at',
-      [username, passwordHash, full_name, role, phoneNumber, email]
+      'INSERT INTO "user" (username, password, full_name, role_id, phone, email) VALUES($1, $2, $3, $4, $5, $6) RETURNING id, username, full_name, email, phone, status, created_at, role_id',
+      [username, passwordHash, full_name, roleId, phoneNumber, email]
+    );
+
+    const created = result.rows[0];
+    // map role name back into the returned object for compatibility
+    if (created && created.role_id) {
+      const r = await roles.getRoleById(created.role_id);
+      created.role = r ? r.name : null;
+    } else {
+      created.role = null;
+    }
+    return created;
+  },
+
+  async getUserById(id) {
+    const result = await db.query(
+      'SELECT u.id, u.username, u.full_name, r.name as role, u.email, u.phone, u.status, u.created_at, u.refresh_token, u.role_id FROM "user" u LEFT JOIN "role" r ON r.id = u.role_id WHERE u.id = $1',
+      [id]
     );
     return result.rows[0];
   },
-  async getUserById(id) {
-    const result = await db.query('SELECT id, username, full_name, role, email, phone, status, created_at, refresh_token  FROM "user" WHERE id = $1', [id]);
-    return result.rows[0];
-  },
+
   async update(id, fields = {}) {
-    const allowed = ['username', 'full_name', 'phone', 'email', 'role', 'status'];
+    // Accept either `role` (name) or `role_id` in fields. Convert `role` to role_id.
+    const allowed = ['username', 'full_name', 'phone', 'email', 'role_id', 'status'];
+
     const set = [];
     const params = [];
     let idx = 1;
+
+    // handle role name provided as `role`
+    if (Object.prototype.hasOwnProperty.call(fields, 'role') && fields.role !== undefined && fields.role !== null) {
+      const r = await roles.getRoleByName(fields.role);
+      fields.role_id = r ? r.id : null;
+    }
+
     for (const key of allowed) {
-      // Only include the key if caller provided a non-null, non-undefined value
       if (Object.prototype.hasOwnProperty.call(fields, key) && fields[key] !== undefined && fields[key] !== null) {
         set.push(`${key} = $${idx}`);
         params.push(fields[key]);
         idx++;
       }
     }
+
     if (set.length === 0) return null;
     params.push(id);
-    const sql = `UPDATE "user" SET ${set.join(', ')} WHERE id = $${idx} RETURNING id, username, full_name, role, email, phone, status, created_at`;
+    const sql = `UPDATE "user" SET ${set.join(', ')} WHERE id = $${idx} RETURNING id, username, full_name, email, phone, status, created_at, role_id`;
     const result = await db.query(sql, params);
-    return result.rows[0];
+    const updated = result.rows[0];
+    if (updated && updated.role_id) {
+      const r = await roles.getRoleById(updated.role_id);
+      updated.role = r ? r.name : null;
+    } else {
+      updated.role = null;
+    }
+    return updated;
   },
+
   async updateUserPasswordById(id, passwordHash) {
     const result = await db.query(
       'UPDATE "user" SET password = $1 WHERE id = $2 RETURNING id, username',
@@ -62,6 +131,7 @@ const users = {
     );
     return result.rows[0];
   },
+
   async updateUserRefreshTokenById(id, refreshToken) {
     const result = await db.query(
       'UPDATE "user" SET refresh_token = $1 WHERE id = $2 RETURNING id',
@@ -69,7 +139,6 @@ const users = {
     );
     return result.rows[0];
   },
-  
 };
 
 export default users;
