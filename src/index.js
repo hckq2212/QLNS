@@ -12,10 +12,13 @@ import projectRoute from './routes/projectRoute.js'
 import contractAppendixRoute from './routes/contractAppendixRoute.js'
 import debtPaymentController from './controllers/debtPaymentController.js'
 import auth from '../src/middleware/authMiddleware.js'
+import cors from 'cors'
 
 const app = express()
-app.use(express.json())
 const port = process.env.PORT || 3000
+app.use(cors())
+app.use(express.json())
+
 
 
 app.use('/api/auth', authRoute)
