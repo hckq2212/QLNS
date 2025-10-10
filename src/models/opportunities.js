@@ -18,11 +18,12 @@ const opportunities = {
         return result.rows[0];
     },
 
-    async create({ customer_id = null, customer_temp = null, expected_price = null, description = null, created_by = null }) {
+    async create({ customer_id = null, customer_temp = null, expected_price = null, description = null, created_by = null, status = 'draft' }) {
+        // Default new opportunities to 'draft' to match expected business flow.
         const result = await db.query(
-            `INSERT INTO opportunity (customer_id, customer_temp, expected_price, description, created_by)
-             VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-            [customer_id, customer_temp, expected_price, description, created_by]
+            `INSERT INTO opportunity (customer_id, customer_temp, expected_price, description, created_by, status)
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+            [customer_id, customer_temp, expected_price, description, created_by, status]
         );
         return result.rows[0];
     },

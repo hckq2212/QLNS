@@ -58,7 +58,15 @@ const contractController = {
             // only HR role can hr-confirm
             if (!user.role || (user.role !== 'hr' && user.role !== 'admin')) return res.status(403).json({ error: 'Forbidden' });
             const userId = user.id;
-            const updated = await contractService.updateStatus(id, 'waiting_hr_confirm', userId);
+            // allow manual code assignment in body: { code }
+            const manualCode = req.body && req.body.code ? String(req.body.code).trim() : null;
+            let updated;
+            if (manualCode) {
+                // set code fields directly and set status to waiting_hr_confirm
+                updated = await contractService.setContractNumberAndStatus(id, manualCode, userId);
+            } else {
+                updated = await contractService.updateStatus(id, 'waiting_hr_confirm', userId);
+            }
             if (!updated) return res.status(404).json({ error: 'Contract not found' });
             return res.json(updated);
         } catch (err) {

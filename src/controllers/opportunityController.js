@@ -106,6 +106,20 @@ const opportunityController = {
         }
     },
 
+    submit: async (req, res) => {
+        try {
+            const id = req.params.id;
+            const user = req.user || {};
+            if (!user.id) return res.status(401).json({ error: 'Unauthorized' });
+            // Only creator or sale role should submit; role middleware can handle specific checks upstream
+            const updated = await opportunityService.submitToBod(id, user.id);
+            return res.json(updated);
+        } catch (err) {
+            console.error('submit error:', err);
+            return res.status(400).json({ error: err.message || 'Bad request' });
+        }
+    },
+
     getByCreator: async (req, res) => {
         try {
             const creatorId = req.params.userId || (req.user && req.user.id);

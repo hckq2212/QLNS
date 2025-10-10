@@ -22,6 +22,7 @@ const opportunityService = {
         // If services are provided, create opportunity and services in a transaction
         const services = payload.services || [];
         if (!services || services.length === 0) {
+            // ensure we create with default 'draft' status unless caller provided one
             return await opportunities.create(payload);
         }
 
@@ -88,6 +89,16 @@ const opportunityService = {
     updateOpportunity: async (id, fields) => {
         if (!id) throw new Error('id required');
         return await opportunities.update(id, fields);
+    },
+
+    // Submit a draft opportunity to BOD for review
+    submitToBod: async (id, userId) => {
+        if (!id) throw new Error('id required');
+        // Only allow submission from draft status
+        const op = await opportunities.getById(id);
+        if (!op) throw new Error('Opportunity not found');
+        if (op.status && op.status !== 'draft') throw new Error('Only draft opportunities can be submitted');
+        return await opportunities.update(id, { status: 'waiting_bod_review', approved_by: userId });
     },
 
     deleteOpportunity: async (id) => {

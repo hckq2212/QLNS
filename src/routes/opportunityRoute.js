@@ -32,4 +32,7 @@ opportunityRoute.post('/:id/approve', checkToken, requireRole('bod'), opportunit
 // Reject (requires auth and role 'bod')
 opportunityRoute.post('/:id/reject', checkToken, requireRole('bod'), opportunityController.reject);
 
+// Submit draft opportunity to BOD (sale)
+opportunityRoute.post('/:id/submit', checkToken, requireRole('sale'), opportunityController.submit);
+
 export default opportunityRoute;

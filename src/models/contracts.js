@@ -153,7 +153,13 @@ const contracts = {
     async updateProjectAck(projectId, userId) {
         if (!projectId) throw new Error('projectId required');
         const result = await db.query('UPDATE project SET lead_ack_at = now(), lead_ack_by = $1 WHERE id = $2 RETURNING *', [userId, projectId]);
-        return result.rows[0];
+        const updated = result.rows[0];
+        return updated;
+    }
+
+    ,async getByProjectId(projectId){
+        const res = await db.query('SELECT * FROM project WHERE id = $1', [projectId]);
+        return res.rows[0];
     }
 }
 export default contracts;
