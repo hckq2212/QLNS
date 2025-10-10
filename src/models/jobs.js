@@ -32,6 +32,32 @@ const jobs = {
 
     ,
 
+    async create(payload, conn = db) {
+        // payload: { project_id, name, start_date, end_date }
+        const client = conn === db ? await db.connect() : conn;
+        try {
+            // check project lead ack
+            const pRes = await client.query('SELECT lead_ack_at FROM project WHERE id = $1', [payload.project_id]);
+            if (!pRes.rows || pRes.rows.length === 0) throw new Error('project not found');
+            const leadAck = pRes.rows[0].lead_ack_at;
+            if (!leadAck) throw new Error('project lead must acknowledge before creating jobs');
+
+            // validate dates
+            if (payload.start_date && payload.end_date) {
+                const s = new Date(payload.start_date);
+                const e = new Date(payload.end_date);
+                if (s > e) throw new Error('start_date must be <= end_date');
+            }
+
+            const result = await client.query('INSERT INTO job (project_id, name, start_date, end_date, created_at) VALUES ($1, $2, $3, $4, now()) RETURNING *', [payload.project_id, payload.name, payload.start_date || null, payload.end_date || null]);
+            return result.rows[0];
+        } finally {
+            if (client && client.release && conn === db) client.release();
+        }
+    }
+
+    ,
+
     async update(id, fields = {}, conn = db) {
         if (!id) throw new Error('id required');
         const allowed = ['status', 'progress_percent', 'external_cost'];
