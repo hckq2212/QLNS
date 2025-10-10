@@ -6,6 +6,11 @@ export default function requireRole(...allowedRoles) {
     }
 
     const userRole = req.user.role;
+    // Allow admin to perform any action
+    if (userRole === 'admin') {
+      return next();
+    }
+
     if (allowedRoles.includes(userRole)) {
       return next();
     }
