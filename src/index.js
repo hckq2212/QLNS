@@ -18,16 +18,16 @@ app.use(express.json())
 const port = process.env.PORT || 3000
 
 
-app.use('/auth', authRoute)
-app.use('/opportunity',auth, opportunityRoute)
-app.use('/user',auth,userRoute)
-app.use('/customer',auth,customerRoute)
-app.use('/contract',auth,contractRoute)
-app.use('/job',auth,jobRoute)
-app.use('/debt',auth,debtRoute)
-app.use('/service',auth, serviceRoute)
-app.use('/project',auth, projectRoute)
-app.use('/appendix',auth, contractAppendixRoute)
+app.use('/api/auth', authRoute)
+app.use('/api/api/opportunity',auth, opportunityRoute)
+app.use('/api/user',auth,userRoute)
+app.use('/api/customer',auth,customerRoute)
+app.use('/api/contract',auth,contractRoute)
+app.use('/api/job',auth,jobRoute)
+app.use('/api/debt',auth,debtRoute)
+app.use('/api/service',auth, serviceRoute)
+app.use('/api/project',auth, projectRoute)
+app.use('/api/appendix',auth, contractAppendixRoute)
 
 
 
