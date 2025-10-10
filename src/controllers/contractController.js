@@ -49,6 +49,76 @@ const contractController = {
             return res.status(400).json({ error: err.message || 'Bad request' });
         }
     }
+
+    ,
+    hrConfirm: async (req, res) => {
+        try {
+            const id = req.params.id;
+            const userId = req.user && req.user.id;
+            const updated = await contractService.updateStatus(id, 'waiting_hr_confirm', userId);
+            if (!updated) return res.status(404).json({ error: 'Contract not found' });
+            return res.json(updated);
+        } catch (err) {
+            console.error('hrConfirm err', err);
+            return res.status(400).json({ error: err.message || 'Cannot update status' });
+        }
+    },
+
+    submitToBod: async (req, res) => {
+        try {
+            const id = req.params.id;
+            const updated = await contractService.updateStatus(id, 'waiting_bod_approval');
+            if (!updated) return res.status(404).json({ error: 'Contract not found' });
+            return res.json(updated);
+        } catch (err) {
+            console.error('submitToBod err', err);
+            return res.status(400).json({ error: err.message || 'Cannot update status' });
+        }
+    },
+
+    approveByBod: async (req, res) => {
+        try {
+            const id = req.params.id;
+            const userId = req.user && req.user.id;
+            try {
+                const updated = await contractService.updateStatus(id, 'approved', userId);
+                if (!updated) return res.status(404).json({ error: 'Contract not found' });
+                return res.json(updated);
+            } catch (err) {
+                console.error('approveByBod trigger err', err);
+                return res.status(400).json({ error: err.message || 'Cannot approve contract' });
+            }
+        } catch (err) {
+            console.error('approveByBod err', err);
+            return res.status(500).json({ error: 'Internal server error' });
+        }
+    },
+
+    sign: async (req, res) => {
+        try {
+            const id = req.params.id;
+            const { signed_file_url } = req.body;
+            if (!signed_file_url) return res.status(400).json({ error: 'signed_file_url required' });
+            const updated = await contractService.signContract(id, signed_file_url);
+            if (!updated) return res.status(404).json({ error: 'Contract not found' });
+            return res.json(updated);
+        } catch (err) {
+            console.error('sign err', err);
+            return res.status(500).json({ error: 'Internal server error' });
+        }
+    },
+
+    deploy: async (req, res) => {
+        try {
+            const id = req.params.id;
+            const deployed = await contractService.deployContract(id);
+            if (!deployed) return res.status(404).json({ error: 'Contract not found' });
+            return res.json(deployed);
+        } catch (err) {
+            console.error('deploy err', err);
+            return res.status(500).json({ error: 'Internal server error' });
+        }
+    }
 }
 
 export default contractController;

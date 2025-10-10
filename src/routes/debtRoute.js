@@ -1,6 +1,7 @@
 import debtController  from "../controllers/debtController.js";
 import express from 'express'
 import checkToken from "../middleware/authMiddleware.js";
+import debtPaymentController from "../controllers/debtPaymentController.js";
 
 const debtRoute = express.Router();
 

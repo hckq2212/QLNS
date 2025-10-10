@@ -12,5 +12,10 @@ contractRoute.get('/', contractController.getAll);
 contractRoute.get('/pending', contractController.getAllPending);
 contractRoute.get('/:id', contractController.getById);
 contractRoute.post('/', contractController.create);
+contractRoute.patch('/:id/hr-confirm', contractController.hrConfirm);
+contractRoute.patch('/:id/submit-bod', contractController.submitToBod);
+contractRoute.patch('/:id/approve', contractController.approveByBod);
+contractRoute.patch('/:id/sign', contractController.sign);
+contractRoute.post('/:id/deploy', contractController.deploy);
 
 export default contractRoute;
