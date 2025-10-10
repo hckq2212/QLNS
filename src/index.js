@@ -22,7 +22,7 @@ app.use(express.json())
 
 
 app.use('/api/auth', authRoute)
-app.use('/api/api/opportunity',auth, opportunityRoute)
+app.use('/api/opportunity',auth, opportunityRoute)
 app.use('/api/user',auth,userRoute)
 app.use('/api/customer',auth,customerRoute)
 app.use('/api/contract',auth,contractRoute)

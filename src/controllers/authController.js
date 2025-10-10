@@ -88,8 +88,13 @@ const authController = {
 
         try{
             const result = await authService.login(userInput)
-            // if (typeof result === 'string') return res.status(401).json({ error: result });
-            return res.json(result)
+            // authService may return a string message for common auth failures
+            if (!result) return res.status(401).json({ error: 'Authentication failed' });
+            if (typeof result === 'string') return res.status(401).json({ error: result });
+            if (result && result.error) return res.status(401).json({ error: result.error });
+
+            // successful login returns token pair
+            return res.status(200).json(result)
         }catch(err){
             console.error('Login error:', err);
             return res.status(500).json({ error: 'Internal server error' });
