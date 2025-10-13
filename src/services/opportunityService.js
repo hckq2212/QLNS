@@ -347,9 +347,7 @@ const opportunityService = {
 
                 let salePricePerUnit;
                 if (proposed != null) {
-                    if (minPricePerUnit != null && proposed < minPricePerUnit) {
-                        throw new Error('Proposed price is lower than allowed minimum');
-                    }
+
                     if (maxPricePerUnit != null && proposed > maxPricePerUnit) {
                         throw new Error('Proposed price exceeds allowed maximum');
                     }
@@ -429,6 +427,9 @@ const opportunityService = {
                         writeCols.push('service_id'); writeVals.push(Number(svcId));
                         if (hasServiceName) { writeCols.push('service_name'); writeVals.push(svcName); }
                         if (csCols.includes('total_jobs')) { writeCols.push('total_jobs'); writeVals.push(agg.total_jobs); }
+                        // some schemas use 'qty' or 'quantity' instead of 'total_jobs'
+                        if (csCols.includes('qty')) { writeCols.push('qty'); writeVals.push(agg.total_jobs); }
+                        if (csCols.includes('quantity')) { writeCols.push('quantity'); writeVals.push(agg.total_jobs); }
                         if (csCols.includes('total_sale_price')) { writeCols.push('total_sale_price'); writeVals.push(agg.total_sale_price); }
                         if (csCols.includes('total_cost')) { writeCols.push('total_cost'); writeVals.push(agg.total_cost); }
                         if (csCols.includes('avg_progress')) { writeCols.push('avg_progress'); writeVals.push(avgProg); }
