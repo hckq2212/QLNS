@@ -13,6 +13,8 @@ import contractAppendixRoute from './routes/contractAppendixRoute.js'
 import debtPaymentController from './controllers/debtPaymentController.js'
 import auth from '../src/middleware/authMiddleware.js'
 import cors from 'cors'
+import serviceJobRoute from './routes/serviceJobRoute.js'
+
 
 const app = express()
 const port = process.env.PORT || 3000
@@ -22,7 +24,8 @@ app.use(express.json())
 
 
 app.use('/api/auth', authRoute)
-app.use('/api/opportunity',auth, opportunityRoute)
+    // mount opportunity routes under /api/opportunity (previously had duplicate /api/api)
+app.use('/api/opportunity', auth, opportunityRoute)
 app.use('/api/user',auth,userRoute)
 app.use('/api/customer',auth,customerRoute)
 app.use('/api/contract',auth,contractRoute)
@@ -31,6 +34,7 @@ app.use('/api/debt',auth,debtRoute)
 app.use('/api/service',auth, serviceRoute)
 app.use('/api/project',auth, projectRoute)
 app.use('/api/appendix',auth, contractAppendixRoute)
+app.use('/api/service-job',auth, serviceJobRoute)
 
 
 
