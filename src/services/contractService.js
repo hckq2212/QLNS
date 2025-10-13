@@ -97,7 +97,7 @@ const contractService = {
             console.error('post-ack contract promotion error:', err);
         }
         return result;
-    }
+    },
 }
 
 export default contractService;

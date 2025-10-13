@@ -55,8 +55,6 @@ const contractController = {
         try {
             const id = req.params.id;
             const user = req.user || {};
-            // only HR role can hr-confirm
-            if (!user.role || (user.role !== 'hr' && user.role !== 'admin')) return res.status(403).json({ error: 'Forbidden' });
             const userId = user.id;
             // allow manual code assignment in body: { code }
             const manualCode = req.body && req.body.code ? String(req.body.code).trim() : null;
@@ -151,7 +149,8 @@ const contractController = {
             console.error('deploy err', err);
             return res.status(500).json({ error: 'Internal server error' });
         }
-    }
+    },
+    
 }
 
 export default contractController;

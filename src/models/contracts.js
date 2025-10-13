@@ -10,7 +10,7 @@ const contracts = {
         return result.rows[0];
     },
     async getAllPendingContracts () {
-        const result = await db.query("SELECT * FROM contract WHERE status = 'pending'")
+        const result = await db.query("SELECT * FROM contract WHERE status = 'waiting_hr_confirm'")
         return result.rows;
     },
     async create (opportunityId, customerId, totalCost, creatorId) {
@@ -71,9 +71,12 @@ const contracts = {
                 const yy = String(partDate.getUTCFullYear()).slice(-2);
                 const mm = String(partDate.getUTCMonth() + 1).padStart(2, '0');
 
-                // lock rows for this month by selecting max seq FOR UPDATE (DB will lock)
-                const seqRes = await client.query('SELECT COALESCE(MAX(code_seq),0) as maxseq FROM contract WHERE code_year = $1 AND code_month = $2 FOR UPDATE', [yy, mm]);
-                const nextSeq = Number(seqRes.rows[0].maxseq || 0) + 1;
+                // acquire an advisory lock for this year-month to serialize sequence generation
+                await client.query('SELECT pg_advisory_xact_lock(($1::int * 100) + $2::int)', [yy, mm]);
+                // now safely compute max sequence without FOR UPDATE (we hold the advisory lock)
+                const seqRes = await client.query('SELECT COALESCE(MAX(code_seq),0) as maxseq FROM contract WHERE code_year = $1 AND code_month = $2', [yy, mm]);
+                const maxseq = seqRes && seqRes.rows && seqRes.rows[0] ? seqRes.rows[0].maxseq : 0;
+                const nextSeq = Number(maxseq || 0) + 1;
                 const seqStr = String(nextSeq).padStart(3, '0');
                 const code = `SGMK-${yy}-${mm}-${seqStr}`;
 
@@ -161,6 +164,123 @@ const contracts = {
         const res = await db.query('SELECT * FROM project WHERE id = $1', [projectId]);
         return res.rows[0];
     }
+
+        ,async getServiceUsage(contractId) {
+                if (!contractId) throw new Error('contractId required');
+                // detect if contract_service table exists
+                const tblRes = await db.query("SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'contract_service') as exists");
+                const hasContractService = tblRes && tblRes.rows && tblRes.rows[0] && tblRes.rows[0].exists;
+                if (!hasContractService) {
+                        const sql = `
+                                SELECT
+                                    s.id AS service_id,
+                                    s.name AS service_name,
+                                    COUNT(j.id) AS total_jobs,
+                                    SUM(j.sale_price) AS total_sale_price,
+                                    SUM(j.base_cost) AS total_cost,
+                                FROM job j
+                                JOIN service s ON s.id = j.service_id
+                                WHERE j.contract_id = $1
+                                GROUP BY s.id, s.name
+                                ORDER BY s.name
+                        `;
+                        const res = await db.query(sql, [contractId]);
+                        return res.rows;
+                }
+
+                                // contract_service exists: detect column names so we don't reference missing columns
+                                const colsRes = await db.query("SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name = 'contract_service'");
+                                const csCols = (colsRes.rows || []).map(r => r.column_name);
+
+                                // If contract_service already contains aggregated columns (total_jobs, total_sale_price, total_cost, avg_progress)
+                                // then prefer selecting those directly and merge with job aggregates as a fallback.
+                            const csHasTotals = csCols.includes('total_jobs') || csCols.includes('total_sale_price') || csCols.includes('total_cost') || csCols.includes('avg_progress');
+                            // ensure contract_service is partitioned by contract_id; otherwise we can't
+                            // filter by contract and should fall back to job-only aggregation.
+                            const hasContractIdCol = csCols.includes('contract_id') || csCols.includes('contractid') || csCols.includes('contract');
+                            if (csHasTotals && hasContractIdCol) {
+                                        const combinedSql = `
+                                                SELECT
+                                                    s.id AS service_id,
+                                                    s.name AS service_name,
+                                                    COALESCE(cs.total_jobs, j.total_jobs, 0) AS total_jobs,
+                                                    COALESCE(cs.total_sale_price, j.total_sale_price, 0) AS total_sale_price,
+                                                    COALESCE(cs.total_cost, j.total_cost, 0) AS total_cost,
+                                                    ROUND(COALESCE(cs.avg_progress, j.avg_progress, 0)::numeric, 2) AS avg_progress
+                                                FROM (
+                                                    SELECT service_id FROM contract_service WHERE contract_id = $1
+                                                    UNION
+                                                    SELECT service_id FROM job WHERE contract_id = $1
+                                                ) t
+                                                JOIN service s ON s.id = t.service_id
+                                                LEFT JOIN (
+                                                    SELECT service_id, service_name, total_jobs, total_sale_price, total_cost, avg_progress
+                                                    FROM contract_service WHERE contract_id = $1
+                                                ) cs ON cs.service_id = s.id
+                                                LEFT JOIN (
+                                                    SELECT service_id, COUNT(id) AS total_jobs, SUM(sale_price) AS total_sale_price, SUM(base_cost) AS total_cost, AVG(progress_percent) AS avg_progress
+                                                    FROM job WHERE contract_id = $1 GROUP BY service_id
+                                                ) j ON j.service_id = s.id
+                                                ORDER BY s.name
+                                        `;
+                                        const cres = await db.query(combinedSql, [contractId]);
+                                        return cres.rows;
+                                }
+
+                                    if (csHasTotals && !hasContractIdCol) {
+                                        // contract_service appears to hold pre-aggregated totals but does not
+                                        // include a contract_id column we can filter on. Log and fall back.
+                                        console.warn('contract_service contains totals but has no contract_id column; falling back to job-based aggregation');
+                                    }
+
+                                // Fallback: no pre-aggregated totals in contract_service. Build aggregates from raw columns (previous logic)
+                                // helper to pick the first matching candidate
+                                const pick = (candidates) => {
+                                        for (const c of candidates) if (csCols.includes(c)) return c;
+                                        return null;
+                                };
+                                const svcCol = pick(['service_id', 'serviceid', 'service']);
+                                if (!svcCol) throw new Error('contract_service table missing service_id column');
+                                const qtyCol = pick(['quantity', 'qty', 'amount', 'service_quantity', 'service_qty', 'total_quantity']);
+                                const priceCol = pick(['sale_price', 'saleprice', 'price', 'unit_price', 'amount', 'total_sale_price']);
+                                const costCol = pick(['base_cost', 'basecost', 'cost', 'unit_cost', 'total_cost']);
+                                const progCol = pick(['progress_percent', 'progress', 'progress_pct', 'avg_progress']);
+
+                                // build cs aggregate select parts, fallback to constants when columns absent
+                                const csTotalQuantity = qtyCol ? `SUM(COALESCE("${qtyCol}",0)) AS total_quantity` : `0 AS total_quantity`;
+                                const csTotalSale = priceCol ? `SUM(COALESCE("${priceCol}",0)) AS total_sale_price` : `0 AS total_sale_price`;
+                                const csTotalCost = costCol ? `SUM(COALESCE("${costCol}",0)) AS total_cost` : `0 AS total_cost`;
+                                const csAvgProg = progCol ? `AVG("${progCol}") AS avg_progress` : `NULL::numeric AS avg_progress`;
+
+                                const combinedSql = `
+                                        SELECT
+                                            s.id AS service_id,
+                                            s.name AS service_name,
+                                            COALESCE(cs.total_quantity, 0) AS total_quantity,
+                                            COALESCE(j.total_jobs, 0) AS total_jobs,
+                                            COALESCE(j.total_sale_price,0) + COALESCE(cs.total_sale_price,0) AS total_sale_price,
+                                            COALESCE(j.total_cost,0) + COALESCE(cs.total_cost,0) AS total_cost,
+                                            ROUND(COALESCE(j.avg_progress, cs.avg_progress, 0)::numeric, 2) AS avg_progress
+                                        FROM (
+                                            SELECT "${svcCol}" AS service_id FROM contract_service WHERE contract_id = $1
+                                            UNION
+                                            SELECT service_id FROM job WHERE contract_id = $1
+                                        ) t
+                                        JOIN service s ON s.id = t.service_id
+                                        LEFT JOIN (
+                                            SELECT "${svcCol}" AS service_id, ${csTotalQuantity}, ${csTotalSale}, ${csTotalCost}, ${csAvgProg}
+                                            FROM contract_service WHERE contract_id = $1 GROUP BY "${svcCol}"
+                                        ) cs ON cs.service_id = s.id
+                                        LEFT JOIN (
+                                            SELECT service_id, COUNT(id) AS total_jobs, SUM(sale_price) AS total_sale_price, SUM(base_cost) AS total_cost, AVG(progress_percent) AS avg_progress
+                                            FROM job WHERE contract_id = $1 GROUP BY service_id
+                                        ) j ON j.service_id = s.id
+                                        ORDER BY s.name
+                                `;
+                                const cres = await db.query(combinedSql, [contractId]);
+                                return cres.rows;
+        }
+
 }
 export default contracts;
 
