@@ -9,7 +9,17 @@ const customerController = {
             console.error('getAllCustomer error:', err);
             return res.status(500).json({ error: 'Internal server error' });
         }
-    }
+    },
+    getById : async (req, res) => {
+        const customerId = req.params.id;
+        try{
+            const result = await customerService.getById(customerId);
+            return res.json(result);
+        }catch(err){
+            console.error('getAllCustomer error:', err);
+            return res.status(500).json({ error: 'Internal server error' });
+        }
+    },
 }
 
 
