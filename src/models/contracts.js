@@ -58,14 +58,26 @@ const contracts = {
             // If moving to waiting_hr_confirm, assign code SGMK-YY-MM-XXX uniquely per month
             if (status === 'waiting_hr_confirm') {
                 // Use contract.created_at (if present) as the partitioning date; otherwise use nowDate or current time.
-                const createdRes = await client.query('SELECT created_at FROM contract WHERE id = $1 FOR UPDATE', [id]);
+                // Lock the contract row and check if a code has already been assigned.
+                const createdRes = await client.query('SELECT created_at, code, code_seq FROM contract WHERE id = $1 FOR UPDATE', [id]);
                 let partDate = null;
-                if (createdRes.rows && createdRes.rows.length > 0 && createdRes.rows[0].created_at) {
-                    partDate = new Date(createdRes.rows[0].created_at);
-                } else if (nowDate) {
-                    partDate = new Date(nowDate);
-                } else {
-                    partDate = new Date();
+                if (createdRes.rows && createdRes.rows.length > 0) {
+                    // If a code_seq is already present, assume the code was assigned previously
+                    // and skip generating a new one (idempotency).
+                    const existing = createdRes.rows[0];
+                    if (existing.code_seq != null) {
+                        const updExisting = await client.query('UPDATE contract SET status = $1, updated_at = now() WHERE id = $2 RETURNING *', [status, id]);
+                        await client.query('COMMIT');
+                        return updExisting.rows[0];
+                    }
+                    if (existing.created_at) partDate = new Date(existing.created_at);
+                }
+                if (!partDate) {
+                    if (nowDate) {
+                        partDate = new Date(nowDate);
+                    } else {
+                        partDate = new Date();
+                    }
                 }
                 // use UTC to avoid local timezone shifts
                 const yy = String(partDate.getUTCFullYear()).slice(-2);

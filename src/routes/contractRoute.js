@@ -10,8 +10,9 @@ contractRoute.use(checkToken);
 
 contractRoute.get('/', contractController.getAll);
 contractRoute.get('/pending', contractController.getAllPending);
-contractRoute.get('/:id', contractController.getById);
 contractRoute.get('/:id/services', contractController.getServices);
+contractRoute.get('/:id', contractController.getById);
+
 contractRoute.post('/', contractController.create);
 contractRoute.patch('/:id/hr-confirm', contractController.hrConfirm);
 contractRoute.patch('/:id/submit-bod', contractController.submitToBod);

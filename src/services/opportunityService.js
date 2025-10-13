@@ -212,38 +212,7 @@ const opportunityService = {
             );
             const contract = contractRes.rows[0];
 
-            // Generate contract code immediately on approval and mark as waiting_hr_confirm
-            try {
-                // Use contract.created_at if present; otherwise now()
-                const partDate = contract.created_at ? new Date(contract.created_at) : new Date();
-                const yy = String(partDate.getUTCFullYear()).slice(-2);
-                const mm = String(partDate.getUTCMonth() + 1).padStart(2, '0');
-                // acquire an advisory lock for this year-month to serialize sequence generation
-                // use numeric key = yy * 100 + mm (yy and mm are small integers)
-                await client.query('SELECT pg_advisory_xact_lock(($1::int * 100) + $2::int)', [yy, mm]);
-                // now safely compute max sequence without FOR UPDATE (we hold the advisory lock)
-                const seqRes = await client.query('SELECT COALESCE(MAX(code_seq),0) as maxseq FROM contract WHERE code_year = $1 AND code_month = $2', [yy, mm]);
-                const maxseq = seqRes && seqRes.rows && seqRes.rows[0] ? seqRes.rows[0].maxseq : 0;
-                const nextSeq = Number(maxseq || 0) + 1;
-                const seqStr = String(nextSeq).padStart(3, '0');
-                const code = `SGMK-${yy}-${mm}-${seqStr}`;
-                const updRes = await client.query('UPDATE contract SET code = $1, code_year = $2, code_month = $3, code_seq = $4, status = $5, updated_at = now() WHERE id = $6 RETURNING *', [code, yy, mm, nextSeq, 'waiting_hr_confirm', contract.id]);
-                // replace contract with updated row
-                if (updRes.rows && updRes.rows.length > 0) {
-                    contract.code = updRes.rows[0].code;
-                    contract.code_year = updRes.rows[0].code_year;
-                    contract.code_month = updRes.rows[0].code_month;
-                    contract.code_seq = updRes.rows[0].code_seq;
-                    contract.status = updRes.rows[0].status;
-                }
-            } catch (codeErr) {
-                // DB errors here (e.g. invalid enum value, constraint violation) will
-                // abort the current transaction. Don't swallow them silently — rethrow
-                // so the outer catch can rollback and avoid subsequent "current
-                // transaction is aborted" errors.
-                console.error('Failed to auto-generate contract code during approval:', codeErr);
-                throw codeErr;
-            }
+            // Contract code will be assigned later in a single, idempotent place below.
 
             // Create a project linked to this contract so HR/PM can manage jobs
             const projectName = `Project for Contract ${contract.id}`;
@@ -257,37 +226,45 @@ const opportunityService = {
             // Immediately assign a contract code and set status to waiting_hr_confirm
             // Use the same transactional client to avoid nested transactions.
             try {
-                const createdRes = await client.query('SELECT created_at FROM contract WHERE id = $1 FOR UPDATE', [contract.id]);
+                // Lock and inspect contract: if code_seq already exists, skip generation (idempotent)
+                const createdRes = await client.query('SELECT created_at, code_seq FROM contract WHERE id = $1 FOR UPDATE', [contract.id]);
                 let partDate = null;
-                if (createdRes.rows && createdRes.rows.length > 0 && createdRes.rows[0].created_at) {
-                    partDate = new Date(createdRes.rows[0].created_at);
-                } else {
-                    partDate = new Date();
-                }
-                const yy = String(partDate.getUTCFullYear()).slice(-2);
-                const mm = String(partDate.getUTCMonth() + 1).padStart(2, '0');
+                if (createdRes.rows && createdRes.rows.length > 0) {
+                    const existing = createdRes.rows[0];
+                    if (existing.code_seq != null) {
+                        // already assigned earlier; just set status
+                        await client.query('UPDATE contract SET status = $1, updated_at = now() WHERE id = $2', ['waiting_hr_confirm', contract.id]);
+                        // refresh contract
+                        const refreshed = await client.query('SELECT * FROM contract WHERE id = $1', [contract.id]);
+                        if (refreshed.rows && refreshed.rows.length > 0) contract = refreshed.rows[0];
+                        // skip generation
+                    } else {
+                        if (existing.created_at) partDate = new Date(existing.created_at);
+                        if (!partDate) partDate = new Date();
+                        const yy = String(partDate.getUTCFullYear()).slice(-2);
+                        const mm = String(partDate.getUTCMonth() + 1).padStart(2, '0');
 
-                // acquire advisory lock to serialize code_seq generation for this month
-                await client.query('SELECT pg_advisory_xact_lock(($1::int * 100) + $2::int)', [yy, mm]);
-                const seqRes = await client.query('SELECT COALESCE(MAX(code_seq),0) as maxseq FROM contract WHERE code_year = $1 AND code_month = $2', [yy, mm]);
-                const maxseq = seqRes && seqRes.rows && seqRes.rows[0] ? seqRes.rows[0].maxseq : 0;
-                const nextSeq = Number(maxseq || 0) + 1;
-                const seqStr = String(nextSeq).padStart(3, '0');
-                const code = `SGMK-${yy}-${mm}-${seqStr}`;
+                        // acquire advisory lock to serialize code_seq generation for this month
+                        await client.query('SELECT pg_advisory_xact_lock(($1::int * 100) + $2::int)', [yy, mm]);
+                        const seqRes = await client.query('SELECT COALESCE(MAX(code_seq),0) as maxseq FROM contract WHERE code_year = $1 AND code_month = $2', [yy, mm]);
+                        const maxseq = seqRes && seqRes.rows && seqRes.rows[0] ? seqRes.rows[0].maxseq : 0;
+                        const nextSeq = Number(maxseq || 0) + 1;
+                        const seqStr = String(nextSeq).padStart(3, '0');
+                        const code = `SGMK-${yy}-${mm}-${seqStr}`;
 
-                const codeUpd = await client.query('UPDATE contract SET code = $1, code_year = $2, code_month = $3, code_seq = $4, status = $5, updated_at = now() WHERE id = $6 RETURNING *', [code, yy, mm, nextSeq, 'waiting_hr_confirm', contract.id]);
-                if (codeUpd.rows && codeUpd.rows.length > 0) {
-                    // replace contract reference with updated row
-                    contract.code = codeUpd.rows[0].code;
-                    contract.code_year = codeUpd.rows[0].code_year;
-                    contract.code_month = codeUpd.rows[0].code_month;
-                    contract.code_seq = codeUpd.rows[0].code_seq;
-                    contract.status = codeUpd.rows[0].status;
+                        const codeUpd = await client.query('UPDATE contract SET code = $1, code_year = $2, code_month = $3, code_seq = $4, status = $5, updated_at = now() WHERE id = $6 RETURNING *', [code, yy, mm, nextSeq, 'waiting_hr_confirm', contract.id]);
+                        if (codeUpd.rows && codeUpd.rows.length > 0) {
+                            // replace contract reference with updated row
+                            const r = codeUpd.rows[0];
+                            contract.code = r.code;
+                            contract.code_year = r.code_year;
+                            contract.code_month = r.code_month;
+                            contract.code_seq = r.code_seq;
+                            contract.status = r.status;
+                        }
+                    }
                 }
             } catch (codeErr) {
-                // As above: do not swallow DB errors which put the transaction into
-                // an aborted state. Rethrow so the outer transaction handling can
-                // rollback cleanly.
                 console.error('Failed to assign contract code during approval:', codeErr);
                 throw codeErr;
             }
