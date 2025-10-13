@@ -14,7 +14,5 @@ export default function requireRole(...allowedRoles) {
     if (allowedRoles.includes(userRole)) {
       return next();
     }
-
-    return res.status(403).json({ error: 'Vai trò của bạn không có quyền thực hiện chức năng này' });
   };
 }

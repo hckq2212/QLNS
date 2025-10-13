@@ -22,7 +22,8 @@ const opportunityService = {
         // If services are provided, create opportunity and services in a transaction
         const services = payload.services || [];
         if (!services || services.length === 0) {
-            // ensure we create with default 'draft' status unless caller provided one
+            // ensure we create with explicit 'waiting_bod_approval' status unless caller provided one
+            payload.status = payload.status || 'waiting_bod_approval';
             return await opportunities.create(payload);
         }
 
@@ -65,11 +66,54 @@ const opportunityService = {
                 ? computedExpected
                 : (payload.expected_price != null ? Number(payload.expected_price) : null);
 
-            const createdOppRes = await client.query(
-                `INSERT INTO opportunity (customer_id, customer_temp, expected_price, description, created_by)
-                 VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-                [payload.customer_id || null, payload.customer_temp || null, expectedToInsert, payload.description || null, payload.created_by || null]
-            );
+            // ensure new opportunities created via the 'services' path receive the
+            // expected status. When not provided by the caller, default to
+            // 'waiting_bod_approval'.
+            const statusToInsert = payload.status || 'waiting_bod_approval';
+
+            let createdOppRes;
+            try {
+                createdOppRes = await client.query(
+                    `INSERT INTO opportunity (customer_id, customer_temp, expected_price, description, created_by, status)
+                     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+                    [payload.customer_id || null, payload.customer_temp || null, expectedToInsert, payload.description || null, payload.created_by || null, statusToInsert]
+                );
+            } catch (err) {
+                const msg = (err && err.message) ? String(err.message) : '';
+                if (msg.includes('invalid input value for enum') && msg.includes('opportunity_status')) {
+                    // The current transaction is now aborted; rollback and retry the whole
+                    // opportunity + services insert inside a fresh transaction using a new client.
+                    console.warn('opportunityService.createOpportunity: DB enum did not accept status, retrying full create in a fresh transaction with fallback "pending"; consider running migration to add missing enum values.');
+                    try {
+                        await client.query('ROLLBACK');
+                    } catch (rbErr) {
+                        // ignore rollback errors, we'll release and try again
+                        console.warn('Rollback after enum error failed:', rbErr);
+                    }
+                    client.release();
+
+                    const client2 = await db.connect();
+                    try {
+                        await client2.query('BEGIN');
+                        const createdOppRes2 = await client2.query(
+                            `INSERT INTO opportunity (customer_id, customer_temp, expected_price, description, created_by, status)
+                             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+                            [payload.customer_id || null, payload.customer_temp || null, expectedToInsert, payload.description || null, payload.created_by || null, 'pending']
+                        );
+                        const createdOpp2 = createdOppRes2.rows[0];
+                        const createdServices2 = await opportunityServices.createMany(createdOpp2.id, services, client2);
+                        await client2.query('COMMIT');
+                        createdOpp2.services = createdServices2;
+                        return createdOpp2;
+                    } catch (err2) {
+                        await client2.query('ROLLBACK');
+                        throw err2;
+                    } finally {
+                        client2.release();
+                    }
+                }
+                throw err;
+            }
             const createdOpp = createdOppRes.rows[0];
 
             // insert opportunity_service rows
@@ -97,8 +141,11 @@ const opportunityService = {
         // Only allow submission from draft status
         const op = await opportunities.getById(id);
         if (!op) throw new Error('Opportunity not found');
+        // If it's already submitted, treat as idempotent
+        if (op.status === 'waiting_bod_approval') return op;
         if (op.status && op.status !== 'draft') throw new Error('Only draft opportunities can be submitted');
-        return await opportunities.update(id, { status: 'waiting_bod_review', approved_by: userId });
+        // use the canonical 'waiting_bod_approval' status used elsewhere in the codebase
+        return await opportunities.update(id, { status: 'waiting_bod_approval', approved_by: userId });
     },
 
     deleteOpportunity: async (id) => {
@@ -119,7 +166,8 @@ const opportunityService = {
             const opRes = await client.query('SELECT * FROM opportunity WHERE id = $1 FOR UPDATE', [id]);
             const op = opRes.rows[0];
             if (!op) throw new Error('Opportunity not found');
-            if (op.status && op.status !== 'pending') throw new Error('Opportunity is not pending');
+            // Accept either legacy 'pending' or the canonical 'waiting_bod_approval'
+            if (op.status && op.status !== 'waiting_bod_approval' && op.status !== 'pending') throw new Error('Opportunity is not pending');
 
             // create customer if missing
             let customerId = op.customer_id;
@@ -148,7 +196,7 @@ const opportunityService = {
 
             // Approve opportunity (only if still pending)
             const approveRes = await client.query(
-                "UPDATE opportunity SET status = 'approved', approved_by = $1, updated_at = now() WHERE id = $2 AND status = 'pending' RETURNING *",
+                "UPDATE opportunity SET status = 'approved', approved_by = $1, updated_at = now() WHERE id = $2 AND status = 'waiting_bod_approval' RETURNING *",
                 [approverId, id]
             );
             const approved = approveRes.rows[0];
@@ -159,7 +207,7 @@ const opportunityService = {
             // populate jobs from opportunity_service afterwards so triggers
             // can recalculate totals.
             const contractRes = await client.query(
-                "INSERT INTO contract (opportunity_id, customer_id, total_cost, created_by, status) VALUES ($1, $2, $3, $4, 'pending') RETURNING *",
+                "INSERT INTO contract (opportunity_id, customer_id, total_cost, created_by, status) VALUES ($1, $2, $3, $4, 'waiting_bod_approval') RETURNING *",
                 [id, customerId, 0, approverId]
             );
             const contract = contractRes.rows[0];
@@ -261,47 +309,23 @@ const opportunityService = {
                 aggregatedSalePrice += salePrice;
                 aggregatedBaseCost += baseCost;
 
+                // Do NOT auto-create job rows here. Creating jobs before the
+                // project lead acknowledges can trigger DB-level guards or
+                // workflows that require lead ack. Instead compute aggregated
+                // totals from opportunity_service and let HR/PM create jobs
+                // explicitly after team selection and lead ack.
+                // jobName and jobDesc preserved for potential future use.
                 const jobName = (serviceJob && serviceJob.name) || svc.name || `Service ${s.service_id}`;
                 const jobDesc = op.description || null;
-
-                // assigned to approver by default (assigned_type 'user') — use approverId as temporary assignee
-                await client.query(
-                    `INSERT INTO job (contract_id, service_id, service_job_id, project_id, name, description, base_cost, external_cost, sale_price, status, progress_percent, assigned_type, assigned_id, created_by, created_at)
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, NULL, $8, 'pending', 0, 'user', $9, $9, now()) RETURNING *`,
-                    [
-                        contract.id,
-                        s.service_id,
-                        serviceJobId,
-                        project.id,
-                        jobName,
-                        jobDesc,
-                        baseCost,
-                        salePrice,
-                        approverId
-                    ]
-                );
             }
 
-            // After inserting jobs, the DB trigger (trg_job_sync_contract) will
-            // have updated contract.total_cost and contract.total_revenue. Re-fetch
-            // the contract to get the updated totals.
+            // Update contract totals computed from opportunity_service aggregation
+            const totalRevenue = aggregatedSalePrice;
+            const totalCost = aggregatedBaseCost;
+            await client.query('UPDATE contract SET total_revenue = $1, total_cost = $2, updated_at = now() WHERE id = $3', [totalRevenue, totalCost, contract.id]);
+            // re-fetch contract to return accurate totals
             const refreshedContractRes = await client.query('SELECT * FROM contract WHERE id = $1', [contract.id]);
             const refreshedContract = refreshedContractRes.rows[0] || contract;
-
-            // Create debt(s) for this contract.
-            const contractRevenue = refreshedContract.total_revenue != null ? Number(refreshedContract.total_revenue) : null;
-            const contractCost = refreshedContract.total_cost != null ? Number(refreshedContract.total_cost) : null;
-
-            const revenueDiffers = contractRevenue == null || Number.isNaN(contractRevenue) || Math.abs(contractRevenue - aggregatedSalePrice) > 0.01;
-            const costDiffers = contractCost == null || Number.isNaN(contractCost) || Math.abs(contractCost - aggregatedBaseCost) > 0.01;
-
-            if (revenueDiffers || costDiffers) {
-                await client.query('UPDATE contract SET total_revenue = $1, total_cost = $2, updated_at = now() WHERE id = $3', [aggregatedSalePrice, aggregatedBaseCost, contract.id]);
-                refreshedContract.total_revenue = aggregatedSalePrice;
-                refreshedContract.total_cost = aggregatedBaseCost;
-            }
-
-            const totalRevenue = refreshedContract.total_revenue != null ? Number(refreshedContract.total_revenue) : aggregatedSalePrice;
             let createdDebts = [];
 
             if (paymentPlan && Array.isArray(paymentPlan.debts) && paymentPlan.debts.length > 0) {

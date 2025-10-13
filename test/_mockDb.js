@@ -4,6 +4,7 @@
 export function createBaseState() {
   return {
     contracts: [ { id: 1, status: 'draft', code: null, code_year: null, code_month: null, code_seq: null, total_revenue: 1000 } ],
+    opportunities: [],
     debts: [ { id: 1, contract_id: 1, amount: 400 } ],
     projects: [ { id: 1, contract_id: 1, status: null, lead_ack_at: null } ],
     project_team: [ { id:1, project_id:1, user_id: 10 }, { id:2, project_id:1, user_id:11 } ],
@@ -123,6 +124,51 @@ export function makeMockClient(state = {}) {
       const newId = store.contracts.length + 1; const p = params || []; const total_revenue = p[2] || 0;
       const newC = { id: newId, status: 'draft', total_revenue, code: null };
       store.contracts.push(newC); return { rows: [newC] };
+    }
+
+    if (sql.startsWith('INSERT INTO opportunity')) {
+      const newId = (store.opportunities.length || 0) + 1;
+      const p = params || [];
+      const obj = {
+        id: newId,
+        customer_id: p[0] || null,
+        customer_temp: p[1] || null,
+        expected_price: p[2] || null,
+        description: p[3] || null,
+        created_by: p[4] || null,
+        status: p[5] || 'draft'
+      };
+      store.opportunities.push(obj);
+      return { rows: [obj] };
+    }
+
+    if (sql.startsWith('SELECT * FROM opportunity WHERE id = $1')) {
+      const id = params[0];
+      const o = (store.opportunities || []).find(x => Number(x.id) === Number(id));
+      if (!o) return { rows: [] };
+      return { rows: [o] };
+    }
+
+    if (sql.startsWith('UPDATE opportunity SET')) {
+      const setPart = sql.split(/SET/i)[1].split(/WHERE/i)[0];
+      const assignments = setPart.split(',').map(s => s.trim());
+      const id = params[params.length - 1];
+      const o = (store.opportunities || []).find(x => Number(x.id) === Number(id));
+      if (!o) return { rows: [] };
+      let pIdx = 0;
+      for (let j = 0; j < assignments.length; j++) {
+        const assign = assignments[j];
+        const colName = assign.split('=')[0].trim().replace(/COALESCE\(|\)/gi, '').split('.')[0].trim().replace(/['`\"]/g,'');
+        if (/now\(\)/i.test(assign)) {
+          o[colName] = new Date().toISOString();
+        } else {
+          if (pIdx < params.length - 1) {
+            o[colName] = params[pIdx];
+            pIdx++;
+          }
+        }
+      }
+      return { rows: [o] };
     }
 
     if (sql.startsWith('INSERT INTO debt')) {

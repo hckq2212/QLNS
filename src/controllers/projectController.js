@@ -1,4 +1,5 @@
 import projectService from '../services/projectService.js'
+import contractService from '../services/contractService.js'
 
 const projectController = {
     list: async (req, res) => {
@@ -55,6 +56,23 @@ const projectController = {
         } catch (err) {
             console.error('project close error', err);
             return res.status(400).json({ error: err.message || 'Bad request' });
+        }
+    }
+
+    ,
+    // ack endpoint used by team lead to acknowledge project details
+    ack: async (req, res) => {
+        try {
+            const projectId = req.params.id;
+            const user = req.user || {};
+            if (!user.id) return res.status(401).json({ error: 'Unauthorized' });
+            // delegate to contractService which updates lead_ack_at
+            const result = await contractService.ackProject(projectId, user.id);
+            if (!result) return res.status(404).json({ error: 'Project not found' });
+            return res.json(result);
+        } catch (err) {
+            console.error('project ack error', err);
+            return res.status(500).json({ error: 'Internal server error' });
         }
     }
 }

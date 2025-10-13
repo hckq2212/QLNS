@@ -15,7 +15,8 @@ contractRoute.post('/', contractController.create);
 contractRoute.patch('/:id/hr-confirm', contractController.hrConfirm);
 contractRoute.patch('/:id/submit-bod', contractController.submitToBod);
 contractRoute.patch('/:id/approve', contractController.approveByBod);
-contractRoute.patch('/:id/sign', contractController.sign);
+// HR sign the contract (accept POST body with signed_file_url)
+contractRoute.post('/:id/sign', contractController.sign);
 contractRoute.post('/:id/deploy', contractController.deploy);
 
 export default contractRoute;

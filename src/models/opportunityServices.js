@@ -39,19 +39,21 @@ const opportunityServices    = {
             }
 
 
-            // try to insert service_job_id if provided (DB must have column)
-            let res;
-            if (serviceJobId) {
-                res = await runner.query(
-                    'INSERT INTO opportunity_service (opportunity_id, service_id, service_job_id, quantity, proposed_price, note) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
-                    [opportunityId, serviceId, serviceJobId, quantity, proposed, note]
-                );
-            } else {
-                res = await runner.query(
-                    'INSERT INTO opportunity_service (opportunity_id, service_id, quantity, proposed_price, note) VALUES ($1,$2,$3,$4,$5) RETURNING *',
-                    [opportunityId, serviceId, quantity, proposed, note]
-                );
-            }
+            // Use upsert to avoid duplicate key errors when (opportunity_id, service_id) already exists.
+            // Always pass service_job_id (nullable) so we can use a single query and update fields on conflict.
+            const upsertSql = `
+                INSERT INTO opportunity_service (opportunity_id, service_id, service_job_id, quantity, proposed_price, note)
+                VALUES ($1,$2,$3,$4,$5,$6)
+                ON CONFLICT (opportunity_id, service_id)
+                DO UPDATE SET
+                    service_job_id = EXCLUDED.service_job_id,
+                    quantity = EXCLUDED.quantity,
+                    proposed_price = EXCLUDED.proposed_price,
+                    note = EXCLUDED.note
+                RETURNING *
+            `;
+
+            const res = await runner.query(upsertSql, [opportunityId, serviceId, serviceJobId, quantity, proposed, note]);
             created.push(res.rows[0]);
         }
         return created;

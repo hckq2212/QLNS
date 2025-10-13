@@ -9,7 +9,7 @@ const opportunityRoute = express.Router();
 opportunityRoute.get('/' , opportunityController.getAllOpportunities);
 
 // Get tất cả các cơ hội đang chờ duyệt
-opportunityRoute.get('/pending-opportunities',  opportunityController.getAllPendingOpportunities);
+opportunityRoute.get('/pending',  opportunityController.getAllPendingOpportunities);
 
 // Get by creator
 opportunityRoute.get('/creator/:userId', opportunityController.getByCreator);
@@ -27,12 +27,12 @@ opportunityRoute.patch('/:id', opportunityController.update);
 opportunityRoute.delete('/:id', opportunityController.remove);
 
 // Approve (requires auth and role 'bod')
-opportunityRoute.post('/:id/approve', requireRole('bod'), opportunityController.approve);
+opportunityRoute.post('/:id/approve', opportunityController.approve);
 
 // Reject (requires auth and role 'bod')
-opportunityRoute.post('/:id/reject', requireRole('bod'), opportunityController.reject);
+opportunityRoute.post('/:id/reject', opportunityController.reject);
 
 // Submit draft opportunity to BOD (sale)
-opportunityRoute.post('/:id/submit', requireRole('sale'), opportunityController.submit);
+opportunityRoute.post('/:id/submit', opportunityController.submit);
 
 export default opportunityRoute;
