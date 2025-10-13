@@ -388,6 +388,17 @@ const opportunityService = {
                 // jobName and jobDesc preserved for potential future use.
                 const jobName = (serviceJob && serviceJob.name) || svc.name || `Service ${s.service_id}`;
                 const jobDesc = op.description || null;
+                // accumulate per-service aggregates for potential contract_service inserts
+                if (!globalThis.__svcAgg) globalThis.__svcAgg = new Map();
+                const key = String(s.service_id);
+                const existing = globalThis.__svcAgg.get(key) || { total_jobs: 0, total_sale_price: 0, total_cost: 0, progressSum: 0, progressCount: 0, service_name: svc.name };
+                existing.total_jobs += quantity;
+                existing.total_sale_price += salePrice;
+                existing.total_cost += baseCost;
+                if (s.progress_percent != null && !Number.isNaN(Number(s.progress_percent))) { existing.progressSum += Number(s.progress_percent); existing.progressCount += 1; }
+                // preserve service_name if not already set
+                if (!existing.service_name) existing.service_name = svc.name;
+                globalThis.__svcAgg.set(key, existing);
             }
 
             // Update contract totals computed from opportunity_service aggregation
@@ -398,6 +409,70 @@ const opportunityService = {
             const refreshedContractRes = await client.query('SELECT * FROM contract WHERE id = $1', [contract.id]);
             const refreshedContract = refreshedContractRes.rows[0] || contract;
             let createdDebts = [];
+
+            // Try to populate contract_service from opportunity_service aggregates if schema supports it
+            try {
+                const colsRes = await client.query("SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name = 'contract_service'");
+                const csCols = (colsRes.rows || []).map(r => r.column_name);
+                const hasContractId = csCols.includes('contract_id');
+                const hasServiceName = csCols.includes('service_name');
+                if (hasContractId && globalThis.__svcAgg && globalThis.__svcAgg.size > 0) {
+                    // perform safe INSERT or UPDATE using only the columns present in contract_service
+                    for (const [svcId, agg] of globalThis.__svcAgg.entries()) {
+                        const avgProg = agg.progressCount ? Math.round((agg.progressSum / agg.progressCount) * 100) / 100 : null;
+                        const svcName = agg.service_name || null;
+                        // determine which columns we can write
+                        const writeCols = [];
+                        const writeVals = [];
+                        // contract_id and service_id must be provided
+                        writeCols.push('contract_id'); writeVals.push(contract.id);
+                        writeCols.push('service_id'); writeVals.push(Number(svcId));
+                        if (hasServiceName) { writeCols.push('service_name'); writeVals.push(svcName); }
+                        if (csCols.includes('total_jobs')) { writeCols.push('total_jobs'); writeVals.push(agg.total_jobs); }
+                        if (csCols.includes('total_sale_price')) { writeCols.push('total_sale_price'); writeVals.push(agg.total_sale_price); }
+                        if (csCols.includes('total_cost')) { writeCols.push('total_cost'); writeVals.push(agg.total_cost); }
+                        if (csCols.includes('avg_progress')) { writeCols.push('avg_progress'); writeVals.push(avgProg); }
+
+                        // check if a row exists for this contract_id+service_id
+                        const existsRes = await client.query('SELECT 1 FROM contract_service WHERE contract_id = $1 AND service_id = $2 LIMIT 1', [contract.id, Number(svcId)]);
+                        if (existsRes && existsRes.rows && existsRes.rows.length > 0) {
+                            // build UPDATE ... SET col = $n
+                            const setParts = [];
+                            const params = [];
+                            let idx = 1;
+                            for (let i = 0; i < writeCols.length; i++) {
+                                const col = writeCols[i];
+                                const val = writeVals[i];
+                                // skip contract_id and service_id in SET
+                                if (col === 'contract_id' || col === 'service_id') continue;
+                                setParts.push(`${col} = $${idx}`);
+                                params.push(val);
+                                idx++;
+                            }
+                            if (setParts.length > 0) {
+                                // add where params
+                                params.push(contract.id);
+                                params.push(Number(svcId));
+                                const sql = `UPDATE contract_service SET ${setParts.join(', ')}, updated_at = now() WHERE contract_id = $${idx} AND service_id = $${idx+1}`;
+                                await client.query(sql, params);
+                            }
+                        } else {
+                            // build INSERT using writeCols
+                            const placeholders = writeCols.map((_, i) => `$${i+1}`);
+                            const sql = `INSERT INTO contract_service (${writeCols.join(', ')}, created_at) VALUES (${placeholders.join(', ')}, now())`;
+                            await client.query(sql, writeVals);
+                        }
+                    }
+                } else if (csCols && csCols.length > 0 && !hasContractId) {
+                    console.warn('contract_service exists but has no contract_id column; skipping auto-population for contract', contract.id);
+                }
+            } catch (csErr) {
+                console.error('Failed to populate contract_service from opportunity_service:', csErr);
+                // non-fatal: continue with debts/notifications; do not throw to avoid breaking approval
+            } finally {
+                // clear temporary aggregate map
+                try { if (globalThis.__svcAgg) globalThis.__svcAgg.clear(); } catch(e){}
+            }
 
             if (paymentPlan && Array.isArray(paymentPlan.debts) && paymentPlan.debts.length > 0) {
                 // use explicit debts array: [{ amount, due_date }, ...]

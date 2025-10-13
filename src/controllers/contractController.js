@@ -150,6 +150,16 @@ const contractController = {
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
+    getServices: async (req, res) => {
+        try {
+            const contractId = req.params.id;
+            const rows = await contractService.getServicesByContractId(contractId);
+            return res.json(rows);
+        } catch (err) {
+            console.error('getServices err', err);
+            return res.status(500).json({ error: 'Internal server error' });
+        }
+    },
     
 }
 

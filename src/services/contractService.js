@@ -57,6 +57,12 @@ const contractService = {
         return updated;
     },
 
+    getServicesByContractId: async (contractId) => {
+        // delegate to model which already exposes a flexible getServiceUsage
+        const rows = await contracts.getServiceUsage(contractId);
+        return rows;
+    },
+
     setContractNumberAndStatus: async (id, manualCode, actorId = null) => {
         // write the given code into contract.code and set status to waiting_hr_confirm
         // do a simple update: extract year/month and seq if the code follows SGMK-YY-MM-XXX format, otherwise store code as-is
