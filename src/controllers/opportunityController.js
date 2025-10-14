@@ -81,9 +81,9 @@ const opportunityController = {
             const paymentPlan = req.body || {};
             const result = await opportunityService.approveOpportunity(id, approverId, paymentPlan);
             // result expected: { opportunity, contract }
-            if (!result || !result.opportunity) {
-                return res.status(404).json({ error: 'Opportunity not found or already approved/rejected' });
-            }
+            // if (!result || !result.opportunity) {
+            //     return res.status(404).json({ error: 'Opportunity not found or already approved/rejected' });
+            // }
             return res.json(result);
         } catch (err) {
             console.error('approve error:', err);
