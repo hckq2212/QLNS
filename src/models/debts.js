@@ -29,8 +29,7 @@ const debts = {
             [contractId, amt, dueDate, status, null]
         );
         return result.rows[0];
-    }
-    ,
+    },
     async payPartial(id, payAmount = 0) {
         if (!id) throw new Error('id required');
 

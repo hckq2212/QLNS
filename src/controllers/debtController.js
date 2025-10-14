@@ -36,21 +36,16 @@ const debtController = {
             console.error(`Lỗi khi thay đổi trạng thái cho: ${err}`)
             return res.status(500).json({ error: 'Internal server error' });
         }
-    }
-    ,
-    payPartial: async (req, res) => {
-        try {
-            const debtId = req.params.id;
-            const amount = req.body.amount;
-            if (!amount && amount !== 0) return res.status(400).json({ error: 'Missing amount in request body' });
-            const result = await debtService.payPartial(debtId, amount);
-            if (!result) return res.status(404).json({ error: 'Debt not found' });
-            return res.json(result);
-        } catch (err) {
-            console.error('Error in debtController.payPartial', err);
-            return res.status(500).json({ error: 'Internal server error' });
+    },
+    create: async(req, res) => {
+        try{
+            const result = await debtService.create(contract_id, amount, due_date);
+            return result
+        }catch(err){
+            console.error(err)
         }
     }
+    
 }
 
 export default debtController;

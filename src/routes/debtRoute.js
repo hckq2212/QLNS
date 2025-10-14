@@ -8,8 +8,7 @@ const debtRoute = express.Router();
 debtRoute.get('/', debtController.getAll);
 debtRoute.get('/:id', debtController.getById)
 debtRoute.patch('/:id', checkToken, debtController.updateStatus);
-debtRoute.patch('/:id/pay', checkToken, debtController.payPartial);
-debtRoute.post('/debts/:id/pay', debtPaymentController.payPartial)
 debtRoute.get('/debts/reminders', debtPaymentController.reminders)
+debtRoute.post('/', debtController.create)
 
 export default debtRoute;
