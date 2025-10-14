@@ -14,38 +14,52 @@ const contractService = {
         const result = await contracts.getById(contractId);
         return result;
     },
-    create: async (opportunityId, customerId, totalCost, customerTemp, creatorId ) => {
+    createFromOpportunity: async (opportunityId, customerId, totalCost, totalRevenue, customerTemp, creatorId ) => {
         try{
             let cid = customerId;
             if (!cid) {
                 // create customer from temp info and use its id
                 const createdCustomer = await customers.create(customerTemp);
                 cid = createdCustomer && createdCustomer.id;
+            }          
+            let computedTotalRevenue = 0;
+            let computedTotalCost = 0;
+            try {
+                const rowsRes = await db.query(
+                    `SELECT os.quantity, os.proposed_price,
+                            s.base_cost AS service_base_cost,
+                            sj.base_cost AS sj_base_cost
+                     FROM opportunity_service os
+                     LEFT JOIN service s ON s.id = os.service_id
+                     LEFT JOIN service_job sj ON sj.id = os.service_job_id
+                     WHERE os.opportunity_id = $1`,
+                    [opportunityId]
+                );
+                const rows = rowsRes.rows || [];
+                for (const r of rows) {
+                    const qty = r.quantity != null ? Number(r.quantity) : 1;
+                    const proposed = r.proposed_price != null ? Number(r.proposed_price) : 0;
+                    // user requested proposed_price * quantity as total revenue
+                    computedTotalRevenue += proposed * qty;
+
+                    const baseUnit = (r.sj_base_cost != null ? Number(r.sj_base_cost) : (r.service_base_cost != null ? Number(r.service_base_cost) : 0));
+                    computedTotalCost += baseUnit * qty;
+                }
+            } catch (e) {
+                // if query fails, continue with provided totals (but log)
+                console.warn('Failed to compute totals from opportunity_service, falling back to provided totals:', e);
             }
 
-            const result = await contracts.create(opportunityId, cid, totalCost, creatorId);
+            const finalTotalRevenue = Number.isFinite(computedTotalRevenue) && computedTotalRevenue > 0 ? computedTotalRevenue : (Number(totalRevenue) || 0);
+            const finalTotalCost = Number.isFinite(computedTotalCost) && computedTotalCost > 0 ? computedTotalCost : (Number(totalCost) || 0);
+
+            const result = await contracts.create(opportunityId, cid, finalTotalCost, finalTotalRevenue, creatorId);
             return result;
         } catch (err) {
             console.log('contractService.create error:', err);
             throw err;
         }
-    }
-
-    ,
-    // create draft contract (used by Sale)
-    createDraft: async (payload, createdBy) => {
-        // payload: { opportunity_id, customer_id, proposal_file_url, description }
-        const contractsModel = contracts;
-        // reuse existing create but set status to draft via model directly
-        const result = await contractsModel.create(payload.opportunity_id || null, payload.customer_id || null, payload.totalCost || 0, createdBy);
-        // update proposal_file_url and status to draft
-        if (result) {
-            await contractsModel.update(result.id, { proposal_file_url: payload.proposal_file_url || null, status: 'draft' });
-            return await contractsModel.getById(result.id);
-        }
-        return null;
     },
-
     updateStatus: async (id, status, actorId = null) => {
         // Use contracts model to update status; DB triggers may enforce rules (e.g. block approve)
         const updated = await contracts.updateStatus(id, status, actorId);

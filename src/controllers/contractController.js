@@ -32,25 +32,33 @@ const contractController = {
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
-    create: async (req, res) => {
+    createFromOpportunity: async (req, res) => {
         if (!req.user || !req.user.id) return res.status(401).json({ error: 'Unauthorized' });
         const creatorId = req.user.id;
+        const opportunityId = req.params.opportunityId;
         const body = {
-            opportunityId : req.body.opportunityId,
             customerId : req.body.customerId,
             totalCost: req.body.totalCost,
+            totalRevenue:req.body.totalRevenue,
             customerTemp: req.body.customer_temp
         }
         try {
-            const result = await contractService.create(body.opportunityId, body.customerId, body.totalCost, body.customerTemp, creatorId);
+             const result = await contractService.createFromOpportunity(
+                opportunityId,
+                body.customerId,
+                body.totalCost,
+                body.totalRevenue,
+                body.customerTemp,
+                creatorId
+            );
             return res.status(201).json(result);
         } catch (err) {
             console.error('create contract error:', err);
             return res.status(400).json({ error: err.message || 'Bad request' });
         }
-    }
+    },
 
-    ,
+    
     hrConfirm: async (req, res) => {
         try {
             const id = req.params.id;

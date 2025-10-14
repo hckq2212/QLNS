@@ -25,28 +25,18 @@ const contracts = {
         const res = await db.query(sql, params);
         return res.rows;
     },
-    async create (opportunityId, customerId, totalCost, creatorId, code, status = 'draft') {
-        // Attempt insert with provided status; if DB enum rejects it, retry with a safe fallback ('draft').
-        try {
-            const result = await db.query(
-                'INSERT INTO contract (opportunity_id, customer_id, total_cost, created_by, status, code, created_at) VALUES ($1, $2, $3, $4, $5, $6, now()) RETURNING *',
-                [opportunityId, customerId, totalCost, creatorId, status, code || null]
-            );
-            return result.rows[0];
-        } catch (err) {
-            const msg = (err && err.message) ? String(err.message) : '';
-            if (msg.includes('invalid input value for enum') && msg.includes('contract_status')) {
-                console.warn('contracts.create: status value not recognized by DB enum, retrying with fallback status "draft". Consider running migration to add missing enum values.');
-                const result2 = await db.query(
-                    'INSERT INTO contract (opportunity_id, customer_id, total_cost, created_by, status, code, created_at) VALUES ($1, $2, $3, $4, $5, $6, now()) RETURNING *',
-                    [opportunityId, customerId, totalCost, creatorId, 'draft', code || null]
-                );
-                return result2.rows[0];
-            }
-            throw err;
-        }
-    }
-    ,
+    async create(opportunity_id, customer_id, total_cost, total_revenue, created_by) {
+        const result = db.query(
+            `INSERT INTO contract(
+             opportunity_id, customer_id, total_cost, total_revenue, status, created_by
+             )VALUES ($1, $2, $3, $4, $5, $6)
+             RETURNING *
+            `,
+            [opportunity_id, customer_id, total_cost, total_revenue,  "waiting_hr_confirm", created_by]
+        
+        )
+        return result.rows[0];
+    },
     async update(id, fields = {}) {
         if (!id) throw new Error('id required');
         // if trying to change proposal_file_url, ensure contract is not already approved

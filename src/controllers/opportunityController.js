@@ -45,13 +45,13 @@ const opportunityController = {
             return res.status(400).json({ error: err.message || 'Bad request' });
         }
     },
-    
+
     update: async (req, res) => {
         try {
             const id = req.params.id;
             const fields = req.body || {};
             const updated = await opportunityService.updateOpportunity(id, fields);
-            if (!updated) return res.status(404).json({ error: 'Opportunity not found or no fields to update' });
+            if (!updated) return res.status(404).json({ error: 'Không thấy cơ hội hoặc không có thông tin để cập nhật' });
             return res.json(updated);
         } catch (err) {
             console.error('update error:', err);

@@ -9,11 +9,10 @@ const contractRoute = express.Router();
 contractRoute.use(checkToken);
 
 contractRoute.get('/', contractController.getAll);
+contractRoute.post('/opportunity/:opportunityId', contractController.createFromOpportunity)
 contractRoute.get('/pending', contractController.getAllPending);
 contractRoute.get('/:id/services', contractController.getServices);
 contractRoute.get('/:id', contractController.getById);
-
-contractRoute.post('/', contractController.create);
 contractRoute.patch('/:id/hr-confirm', contractController.hrConfirm);
 contractRoute.patch('/:id/submit-bod', contractController.submitToBod);
 contractRoute.patch('/:id/approve', contractController.approveByBod);
