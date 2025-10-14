@@ -27,7 +27,7 @@ const debtService = {
         // simple implementation: find pending debts with due dates and return them for external processing
         const rows = await debts.findDebtsForReminders();
         return rows;
-    }
+    },
 }
 
 export default debtService

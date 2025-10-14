@@ -13,6 +13,18 @@ const contracts = {
         const result = await db.query("SELECT * FROM contract WHERE status = 'waiting_hr_confirm'")
         return result.rows;
     },
+    // Return contracts that have no debt rows yet. Optionally filter by status.
+    async getContractsWithoutDebt(status = null) {
+        let sql = 'SELECT * FROM contract c WHERE NOT EXISTS (SELECT 1 FROM debt d WHERE d.contract_id = c.id)';
+        const params = [];
+        if (status) {
+            params.push(status);
+            sql += ' AND c.status = $1';
+        }
+        sql += ' ORDER BY c.created_at DESC';
+        const res = await db.query(sql, params);
+        return res.rows;
+    },
     async create (opportunityId, customerId, totalCost, creatorId, code, status = 'draft') {
         // Attempt insert with provided status; if DB enum rejects it, retry with a safe fallback ('draft').
         try {
@@ -418,14 +430,6 @@ const contracts = {
                         } finally {
                             client.release();
                         }
-                    }
-                    ,
-                    // Create a single default debt row for the contract equal to amount (usually total revenue)
-                    async createDefaultDebt(contractId, amount) {
-                        if (!contractId) throw new Error('contractId required');
-                        const val = Number(amount || 0);
-                        const res = await db.query('INSERT INTO debt (contract_id, amount, due_date, status, created_at) VALUES ($1, $2, $3, $4, now()) RETURNING *', [contractId, val, null, 'pending']);
-                        return res.rows[0];
                     }
 };
 export default contracts;

@@ -37,7 +37,6 @@ const opportunityController = {
     create: async (req, res) => {
         try {
             const payload = req.body || {};
-            // attach creator if authenticated
             if (req.user && req.user.id) payload.created_by = req.user.id;
             const created = await opportunityService.createOpportunity(payload);
             return res.status(201).json(created);
@@ -46,7 +45,7 @@ const opportunityController = {
             return res.status(400).json({ error: err.message || 'Bad request' });
         }
     },
-
+    
     update: async (req, res) => {
         try {
             const id = req.params.id;
@@ -77,16 +76,11 @@ const opportunityController = {
             const id = req.params.id;
             const approverId = req.user && req.user.id;
             if (!approverId) return res.status(401).json({ error: 'Unauthorized' });
-            // accept optional payment plan in request body: { debts: [{amount, due_date}], installments: n }
             const paymentPlan = req.body || {};
             const result = await opportunityService.approveOpportunity(id, approverId, paymentPlan);
-            // result expected: { opportunity, contract }
-            // if (!result || !result.opportunity) {
-            //     return res.status(404).json({ error: 'Opportunity not found or already approved/rejected' });
-            // }
             return res.json(result);
         } catch (err) {
-            console.error('approve error:', err);
+            console.error('Lỗi khi duyệt cơ hội:', err);
             return res.status(400).json({ error: err.message || 'Bad request' });
         }
     },

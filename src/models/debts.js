@@ -76,6 +76,10 @@ const debts = {
         // returns debts with due_date not null and status = 'pending'
         const result = await db.query("SELECT * FROM debt WHERE due_date IS NOT NULL AND status = 'pending'");
         return result.rows;
-    }
+    },
+    async getDebtByContractId(id) {
+        const result = await db.query('Select * FROM debt WHERE contract_id = $1 ', [id]);
+        return result.rows;
+    },
 }
 export default debts;
