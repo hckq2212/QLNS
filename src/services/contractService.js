@@ -60,12 +60,15 @@ const contractService = {
             throw err;
         }
     },
-    updateStatus: async (id, status, actorId = null) => {
+    updateStatus: async (id, status, approverId = null) => {
         // Use contracts model to update status; DB triggers may enforce rules (e.g. block approve)
-        const updated = await contracts.updateStatus(id, status, actorId);
+        const updated = await contracts.updateStatus( status, approverId, id);
         return updated;
     },
-
+    uploadProposalContract: async (proposalContractURL, id) => {
+        const result = await contracts.uploadProposalContract(proposalContractURL, id);
+        return result;
+    },
     signContract: async (id, signedFileUrl) => {
         const updated = await contracts.signContract(id, signedFileUrl);
         return updated;

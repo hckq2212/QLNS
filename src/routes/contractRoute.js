@@ -14,9 +14,8 @@ contractRoute.get('/pending', contractController.getAllPending);
 contractRoute.get('/:id/services', contractController.getServices);
 contractRoute.get('/:id', contractController.getById);
 contractRoute.patch('/:id/hr-confirm', contractController.hrConfirm);
-contractRoute.patch('/:id/submit-bod', contractController.submitToBod);
 contractRoute.patch('/:id/approve', contractController.approveByBod);
-// HR sign the contract (accept POST body with signed_file_url)
+contractRoute.patch('/:id/upload-contract', contractController.uploadProposalContract)
 contractRoute.post('/:id/sign', contractController.sign);
 contractRoute.post('/:id/deploy', contractController.deploy);
 

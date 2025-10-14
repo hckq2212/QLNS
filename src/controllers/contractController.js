@@ -57,60 +57,29 @@ const contractController = {
             return res.status(400).json({ error: err.message || 'Bad request' });
         }
     },
-
-    
-    hrConfirm: async (req, res) => {
-        try {
-            const id = req.params.id;
-            const user = req.user || {};
-            const userId = user.id;
-            // allow manual code assignment in body: { code }
-            const manualCode = req.body && req.body.code ? String(req.body.code).trim() : null;
-            let updated;
-            if (manualCode) {
-                // set code fields directly and set status to waiting_hr_confirm
-                updated = await contractService.setContractNumberAndStatus(id, manualCode, userId);
-            } else {
-                updated = await contractService.updateStatus(id, 'waiting_hr_confirm', userId);
-            }
-            if (!updated) return res.status(404).json({ error: 'Contract not found' });
-            return res.json(updated);
-        } catch (err) {
-            console.error('hrConfirm err', err);
-            return res.status(400).json({ error: err.message || 'Cannot update status' });
-        }
-    },
-
-    submitToBod: async (req, res) => {
-        try {
-            const id = req.params.id;
-            const updated = await contractService.updateStatus(id, 'waiting_bod_approval');
-            if (!updated) return res.status(404).json({ error: 'Contract not found' });
-            return res.json(updated);
-        } catch (err) {
-            console.error('submitToBod err', err);
-            return res.status(400).json({ error: err.message || 'Cannot update status' });
-        }
-    },
-
     approveByBod: async (req, res) => {
-        try {
-            const id = req.params.id;
-            const user = req.user || {};
-            // only BOD role can approve
-            if (!user.role || (user.role !== 'bod' && user.role !== 'admin')) return res.status(403).json({ error: 'Forbidden' });
-            const userId = user.id;
-            try {
-                const updated = await contractService.updateStatus(id, 'approved', userId);
-                if (!updated) return res.status(404).json({ error: 'Contract not found' });
-                return res.json(updated);
-            } catch (err) {
-                console.error('approveByBod trigger err', err);
-                return res.status(400).json({ error: err.message || 'Cannot approve contract' });
+        const approverId = req.user.id;
+        const id = req.params.id;
+        const status = "bod_approved"
+        try{
+            const result = await contractService.updateStatus(status, approverId, id)
+            if(result){
+                return res.status(200).send("Đã duyệt")
             }
-        } catch (err) {
-            console.error('approveByBod err', err);
-            return res.status(500).json({ error: 'Internal server error' });
+        }catch(err){
+            console.error(err)
+        }
+    },
+    uploadProposalContract: async (req, res) => {
+        const proposalContractURL = req.body.proposalContract;
+        const id = req.params.id
+        try {
+            const result = await contractService.uploadProposalContract(proposalContractURL, id);
+            if (result){
+                return res.status(200).send("Upload thành công")
+            }
+        } catch (error) {
+            console.error(error)
         }
     },
 
@@ -146,7 +115,16 @@ const contractController = {
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
-
+    hrConfirm: async (req, res) => {
+        const approverId = req.user.id;
+        const id = req.params.id;
+        const status = "hr_approved"
+        try{
+            const result = await contractService.updateStatus(status, approverId, id)
+        }catch(err){
+            console.error(err)
+        }
+    },
     deploy: async (req, res) => {
         try {
             const id = req.params.id;
