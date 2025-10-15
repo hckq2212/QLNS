@@ -1,5 +1,7 @@
 import contracts  from "../models/contracts.js";
 import customers from "../models/customers.js";
+import db from "../config/db.js";
+import opportunities from "../models/opportunities.js";
 
 const contractService = {
     getAll: async () => {
@@ -53,8 +55,13 @@ const contractService = {
             const finalTotalRevenue = Number.isFinite(computedTotalRevenue) && computedTotalRevenue > 0 ? computedTotalRevenue : (Number(totalRevenue) || 0);
             const finalTotalCost = Number.isFinite(computedTotalCost) && computedTotalCost > 0 ? computedTotalCost : (Number(totalCost) || 0);
 
+            const opStatus = "contract_created"
+            const opStatusRes = await opportunities.update(opportunityId,{ status: opStatus }) 
+            if(!opStatusRes) throw new Error("Không thể cập nhật trạng thái cơ hội")
+
             const result = await contracts.create(opportunityId, cid, finalTotalCost, finalTotalRevenue, creatorId);
             return result;
+
         } catch (err) {
             console.log('contractService.create error:', err);
             throw err;

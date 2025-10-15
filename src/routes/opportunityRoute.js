@@ -7,16 +7,15 @@ const opportunityRoute = express.Router();
 
 // List all - only allowed for role 'sale'
 opportunityRoute.get('/' , opportunityController.getAllOpportunities);
-
+opportunityRoute.get('/:id/services', opportunityController.getService)
 // Get tất cả các cơ hội đang chờ duyệt
 opportunityRoute.get('/pending',  opportunityController.getAllPendingOpportunities);
 
 // Get by creator
 opportunityRoute.get('/creator/:userId', opportunityController.getByCreator);
-
+    
 // Get single
 opportunityRoute.get('/:id',  opportunityController.getById);
-
 // Create
 opportunityRoute.post('/',  opportunityController.create);
 

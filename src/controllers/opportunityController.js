@@ -124,7 +124,21 @@ const opportunityController = {
             console.error('getByCreator error:', err);
             return res.status(500).json({ error: 'Internal server error' });
         }
-    }
+    },
+    getService: async (req, res) => {
+        const opportunityId = req.params.id || req.params.opportunityId;
+        if (!opportunityId) return res.status(400).json({ error: 'Missing opportunity id' });
+
+        try {
+            const result = await opportunityService.getServices(opportunityId);
+            // normalize to array
+            const services = Array.isArray(result) ? result : (result && result.rows) ? result.rows : [];
+            return res.status(200).json(services);
+        } catch (err) {
+            console.error('getService error:', err);
+            return res.status(500).json({ error: err.message || 'Internal server error' });
+        }
+    },
 };
 
 export default opportunityController;

@@ -86,6 +86,11 @@ const opportunityService = {
         if (!createdBy) throw new Error('createdBy required');
         return await opportunities.getByCreator(createdBy);
     },
+    getServices: async (opportunityId) => {
+        if (!opportunityId) throw new Error('opportunityId is required');
+        const rows = await opportunityServices.getOpportunityService(opportunityId);
+        return Array.isArray(rows) ? rows : (rows && rows.rows) ? rows.rows : [];
+    },
 
     getPendingOpportunities: async () => {
         return await opportunities.getPending();
