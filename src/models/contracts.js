@@ -42,7 +42,7 @@ const contracts = {
             [opportunity_id, customer_id, total_cost, total_revenue,  "waiting_hr_confirm", created_by]
         
         )
-        return result.rows[0];
+        return result.rows;
     },
     async updateStatus (status, approverId, id) {
         const result = await db.query(
