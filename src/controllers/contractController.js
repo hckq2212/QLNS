@@ -49,7 +49,6 @@ const contractController = {
         } = req.body ?? {};
 
         const body = { totalCost, totalRevenue, customerTemp };
-        console.log(body);
 
         try {
             const result = await contractService.createFromOpportunity(
