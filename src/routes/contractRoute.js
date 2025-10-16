@@ -10,14 +10,13 @@ contractRoute.use(checkToken);
 
 contractRoute.get('/', contractController.getAll);
 contractRoute.post('/opportunity/:opportunityId', contractController.createFromOpportunity)
-contractRoute.get('/pending', contractController.getAllPending);
+contractRoute.get('/:status', contractController.getByStatus);
 contractRoute.get('/:id/services', contractController.getServices);
 contractRoute.get('/:id', contractController.getById);
 contractRoute.patch('/:id/hr-confirm', contractController.hrConfirm);
 contractRoute.patch('/:id/approve', contractController.approveByBod);
 contractRoute.patch('/:id/upload-contract', contractController.uploadProposalContract)
 contractRoute.post('/:id/sign', contractController.sign);
-contractRoute.post('/:id/deploy', contractController.deploy);
 
 
 export default contractRoute;

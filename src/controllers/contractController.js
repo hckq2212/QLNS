@@ -32,66 +32,40 @@ const contractController = {
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
-    // createFromOpportunity: async (req, res) => {
-    //     if (!req.user || !req.user.id) return res.status(401).json({ error: 'Unauthorized' });
-    //     const creatorId = req.user.id;
-    //     const opportunityId = req.params.opportunityId;
-    //     const customerId = req.body.customerId ?? null;
-    //     const body = {
-    //         totalCost: req.body.totalCost,
-    //         totalRevenue:req.body.totalRevenue,
-    //         customerTemp: req.body.customer_temp
-    //     }
-    //     console.log(body)
-    //     try {
-    //          const result = await contractService.createFromOpportunity(
-    //             opportunityId,
-    //             customerId,
-    //             body.totalCost,
-    //             body.totalRevenue,
-    //             body.customerTemp,
-    //             creatorId
-    //         );
-    //         return res.status(201).json(result);
-    //     } catch (err) {
-    //         console.error('create contract error:', err);
-    //         return res.status(400).json({ error: err.message || 'Bad request' });
-    //     }
-    // },
     createFromOpportunity: async (req, res) => {
-  if (!req.user?.id) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+        if (!req.user?.id) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
 
-  const creatorId = req.user.id;
-  const opportunityId = req.params?.opportunityId;
+        const creatorId = req.user.id;
+        const opportunityId = req.params?.opportunityId;
 
-  // destructuring an toàn: nếu req.body undefined -> dùng {}
-  const {
-    customerId = null,
-    totalCost,
-    totalRevenue,
-    customer_temp: customerTemp,
-  } = req.body ?? {};
+        // destructuring an toàn: nếu req.body undefined -> dùng {}
+        const {
+            customerId = null,
+            totalCost,
+            totalRevenue,
+            customer_temp: customerTemp,
+        } = req.body ?? {};
 
-  const body = { totalCost, totalRevenue, customerTemp };
-  console.log(body);
+        const body = { totalCost, totalRevenue, customerTemp };
+        console.log(body);
 
-  try {
-    const result = await contractService.createFromOpportunity(
-      opportunityId,
-      customerId,
-      body.totalCost,
-      body.totalRevenue,
-      body.customerTemp,
-      creatorId
-    );
-    return res.status(201).json(result);
-  } catch (err) {
-    console.error('create contract error:', err);
-    return res.status(400).json({ error: err.message || 'Bad request' });
-  }
-},
+        try {
+            const result = await contractService.createFromOpportunity(
+            opportunityId,
+            customerId,
+            body.totalCost,
+            body.totalRevenue,
+            body.customerTemp,
+            creatorId
+            );
+            return res.status(201).json(result);
+        } catch (err) {
+            console.error('create contract error:', err);
+            return res.status(400).json({ error: err.message || 'Bad request' });
+        }
+    },
 
     approveByBod: async (req, res) => {
         const approverId = req.user.id;
@@ -161,17 +135,6 @@ const contractController = {
             console.error(err)
         }
     },
-    deploy: async (req, res) => {
-        try {
-            const id = req.params.id;
-            const deployed = await contractService.deployContract(id);
-            if (!deployed) return res.status(404).json({ error: 'Contract not found' });
-            return res.json(deployed);
-        } catch (err) {
-            console.error('deploy err', err);
-            return res.status(500).json({ error: 'Internal server error' });
-        }
-    },
     getServices: async (req, res) => {
         try {
             const contractId = req.params.id;
@@ -182,6 +145,15 @@ const contractController = {
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
+    getByStatus : async (req, res) => {
+        try{
+            const status =  req.query.status || req.params.status ;
+            const result = await contractService.getByStatus(status);
+            return res.json(result)
+        }catch(err){
+            console.error('Lỗi khi get bởi status')
+        }
+    }
     
 }
 

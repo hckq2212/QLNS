@@ -81,12 +81,6 @@ const contractService = {
         return updated;
     },
 
-    getServicesByContractId: async (contractId) => {
-        // delegate to model which already exposes a flexible getServiceUsage
-        const rows = await contracts.getServiceUsage(contractId);
-        return rows;
-    },
-
     setContractNumberAndStatus: async (id, manualCode, actorId = null) => {
         // write the given code into contract.code and set status to waiting_hr_confirm
         // do a simple update: extract year/month and seq if the code follows SGMK-YY-MM-XXX format, otherwise store code as-is
@@ -104,30 +98,11 @@ const contractService = {
         return updated;
     },
 
-    deployContract: async (id) => {
-        // delegate to model-level deploy which we will ensure exists
-        const updated = await contracts.deployContract(id);
-        return updated;
+    getByStatus: async (status) => {
+        const result = await contracts.getByStatus(status);
+        return result
     }
-
-    ,
-    ackProject: async (projectId, userId) => {
-        // simple wrapper to mark lead_ack_at
-        const result = await contracts.updateProjectAck(projectId, userId);
-        // after ack, if the related contract has legal_confirmed_at set, promote contract to 'executing'
-        try {
-            if (result && result.contract_id) {
-                const contract = await contracts.getById(result.contract_id);
-                if (contract && contract.legal_confirmed_at && contract.status !== 'executing') {
-                    await contracts.updateStatus(contract.id, 'executing');
-                }
-            }
-        } catch (err) {
-            // non-fatal; log
-            console.error('post-ack contract promotion error:', err);
-        }
-        return result;
-    },
+   
 }
 
 export default contractService;

@@ -10,5 +10,6 @@ debtRoute.get('/:id', debtController.getById)
 debtRoute.patch('/:id', checkToken, debtController.updateStatus);
 debtRoute.get('/debts/reminders', debtPaymentController.reminders)
 debtRoute.post('/', debtController.create)
+debtRoute.post('/:contractId', debtController.createForContract)
 
 export default debtRoute;

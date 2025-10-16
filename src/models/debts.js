@@ -20,15 +20,19 @@ const debts = {
         return result.rows[0];
     }
     ,
-    async create(contractId, amount = 0, dueDate = null, status = 'pending') {
+    async create(contractId, amount, dueDate, status = 'pending') {
         const amt = Number(amount);
         if (!Number.isFinite(amt) || amt <= 0) throw new Error('amount must be positive');
-        // required_on_approval default true should be set in DB schema; include if present
-        const result = await db.query(
-            'INSERT INTO debt (contract_id, amount, due_date, status, required_on_approval) VALUES ($1, $2, $3, $4, COALESCE($5, true)) RETURNING id, contract_id, amount, due_date, status, required_on_approval',
-            [contractId, amt, dueDate, status, null]
-        );
-        return result.rows[0];
+        try {
+            const result = await db.query(
+                'INSERT INTO debt (contract_id, amount, due_date, status) VALUES ($1, $2, $3, $4) RETURNING *',
+                [contractId, amt, dueDate, status]
+            );
+            return result.rows[0];
+        } catch (err) {
+            console.error('debts.create DB error:', err && (err.stack || err.message) || err);
+            throw err;
+        }
     },
     async payPartial(id, payAmount = 0) {
         if (!id) throw new Error('id required');
