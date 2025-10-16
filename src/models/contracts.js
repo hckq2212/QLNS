@@ -47,13 +47,17 @@ const contracts = {
         )
         return result.rows;
     },
-    async updateStatus (status, approverId, id) {
+    async updateStatus(id, status, approverId = null) {
         const result = await db.query(
-            `UPDATE table_name
-            SET status = $1, approved_by = $2
-            WHERE contract_id = $3;
-            RETURNING *`,
-            [status,approverId,id])
+            `UPDATE contract
+             SET status = $2,
+                 approved_by = $3,
+                 updated_at = now()
+             WHERE id = $1
+             RETURNING *`,
+            [id, status, approverId]
+        );
+        return result.rows[0];
     },
     async signContract(id, signedFileUrl) {
         if (!id) throw new Error('id required');
