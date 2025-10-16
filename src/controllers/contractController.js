@@ -1,5 +1,5 @@
 import contractService from "../services/contractService.js";
-
+import cloudinary from "../config/cloudinary.js";
 
 const contractController = {
     getAll: async (req, res) => {
@@ -79,16 +79,44 @@ const contractController = {
             console.error(err)
         }
     },
+    // uploadProposalContract: async (req, res) => {
+    //     const proposalContractURL = req.body.proposalContract;
+    //     const id = req.params.id
+    //     try {
+    //         const result = await contractService.uploadProposalContract(proposalContractURL, id);
+    //         if (result){
+    //             return res.status(200).send("Upload thành công")
+    //         }
+    //     } catch (error) {
+    //         console.error(error)
+    //     }
+    // },
     uploadProposalContract: async (req, res) => {
-        const proposalContractURL = req.body.proposalContract;
-        const id = req.params.id
+        const id = req.params.id;
+        if (!req.file) return res.status(400).json({ error: 'No file uploaded (field name: proposalContract)' });
+
         try {
-            const result = await contractService.uploadProposalContract(proposalContractURL, id);
-            if (result){
-                return res.status(200).send("Upload thành công")
-            }
-        } catch (error) {
-            console.error(error)
+            const streamUpload = (buffer) => new Promise((resolve, reject) => {
+                const stream = cloudinary.uploader.upload_stream(
+                    { resource_type: 'raw', folder: 'QLNS/Hợp đồng mẫu' }, // resource_type raw for pdf
+                    (error, result) => {
+                        if (error) return reject(error);
+                        resolve(result);
+                    }
+                );
+                stream.end(buffer);
+            });
+
+            const uploadResult = await streamUpload(req.file.buffer);
+            const url = uploadResult.secure_url || uploadResult.url;
+            if (!url) throw new Error('Cloudinary did not return a URL');
+
+            // persist URL to DB via service
+            const result = await contractService.uploadProposalContract(url, id);
+            return res.status(200).json({ message: 'Upload thành công', url, saved: !!result });
+        } catch (err) {
+            console.error('uploadProposalContract error:', err && (err.stack || err.message) || err);
+            return res.status(500).json({ error: err.message || 'Upload failed' });
         }
     },
 

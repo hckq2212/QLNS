@@ -1,7 +1,10 @@
 import contractController from "../controllers/contractController.js";
 import express from 'express'
 import checkToken from "../middleware/authMiddleware.js";
+import multer from 'multer';
 
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } }); 
 
 const contractRoute = express.Router();
 
@@ -15,7 +18,7 @@ contractRoute.get('/:id/services', contractController.getServices);
 contractRoute.get('/:id', contractController.getById);
 contractRoute.patch('/:id/hr-confirm', contractController.hrConfirm);
 contractRoute.patch('/:id/approve', contractController.approveByBod);
-contractRoute.patch('/:id/upload-contract', contractController.uploadProposalContract)
+contractRoute.patch('/:id/upload-contract', upload.single('proposalContract'), contractController.uploadProposalContract);
 contractRoute.post('/:id/sign', contractController.sign);
 
 

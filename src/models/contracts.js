@@ -15,11 +15,14 @@ const contracts = {
     },
     async uploadProposalContract (url, id) {
         const result = await db.query(
-            `INSERT INTO contract (proposal_file_url)
-            VALUES ($1)
-            WHERE id = $2`,
+            `UPDATE contract
+             SET proposal_file_url = $1,
+                 updated_at = now()
+             WHERE id = $2
+             RETURNING *`,
             [url, id]
-        )
+        );
+        return result.rows[0];
     },
     async getContractsWithoutDebt(status = null) {
         let sql = 'SELECT * FROM contract c WHERE NOT EXISTS (SELECT 1 FROM debt d WHERE d.contract_id = c.id)';
