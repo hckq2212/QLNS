@@ -1,3 +1,4 @@
+import contracts from "../models/contracts.js";
 import debts from "../models/debts.js";
 
 const debtService = {
@@ -16,6 +17,14 @@ const debtService = {
     ,
     create: async (contractId, amount, dueDate) => {
         const result = await debts.create(contractId, amount, dueDate);
+        if(result){
+            try{
+                const status = 'waiting_hr_confirm'
+                const statusRes = await contracts.updateStatus(status)
+            }catch(err){
+                console.error("Lỗi khi update status cho contract", err)
+            }
+        }
         return result;
     }
     ,

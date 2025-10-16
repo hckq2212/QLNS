@@ -16,14 +16,71 @@ const contractService = {
         const result = await contracts.getById(contractId);
         return result;
     },
-    createFromOpportunity: async (opportunityId, customerId, totalCost, totalRevenue, customerTemp, creatorId ) => {
-        try{
+    // createFromOpportunity: async (opportunityId, customerId, totalCost, totalRevenue, customerTemp, creatorId ) => {
+    //     try{
+    //         let cid = customerId;
+    //         if (!cid) {
+    //             // create customer from temp info and use its id
+    //             const createdCustomer = await customers.create(customerTemp);
+    //             cid = createdCustomer && createdCustomer.id;
+    //         }          
+    //         let computedTotalRevenue = 0;
+    //         let computedTotalCost = 0;
+    //         try {
+    //             const rowsRes = await db.query(
+    //                 `SELECT os.quantity, os.proposed_price,
+    //                         s.base_cost AS service_base_cost,
+    //                         sj.base_cost AS sj_base_cost
+    //                  FROM opportunity_service os
+    //                  LEFT JOIN service s ON s.id = os.service_id
+    //                  LEFT JOIN service_job sj ON sj.id = os.service_job_id
+    //                  WHERE os.opportunity_id = $1`,
+    //                 [opportunityId]
+    //             );
+    //             const rows = rowsRes.rows || [];
+    //             for (const r of rows) {
+    //                 const qty = r.quantity != null ? Number(r.quantity) : 1;
+    //                 const proposed = r.proposed_price != null ? Number(r.proposed_price) : 0;
+    //                 // user requested proposed_price * quantity as total revenue
+    //                 computedTotalRevenue += proposed * qty;
+
+    //                 const baseUnit = (r.sj_base_cost != null ? Number(r.sj_base_cost) : (r.service_base_cost != null ? Number(r.service_base_cost) : 0));
+    //                 computedTotalCost += baseUnit * qty;
+    //             }
+    //         } catch (e) {
+    //             // if query fails, continue with provided totals (but log)
+    //             console.warn('Failed to compute totals from opportunity_service, falling back to provided totals:', e);
+    //         }
+
+    //         const finalTotalRevenue = Number.isFinite(computedTotalRevenue) && computedTotalRevenue > 0 ? computedTotalRevenue : (Number(totalRevenue) || 0);
+    //         const finalTotalCost = Number.isFinite(computedTotalCost) && computedTotalCost > 0 ? computedTotalCost : (Number(totalCost) || 0);
+
+    //         const opStatus = "contract_created"
+    //         const opStatusRes = await opportunities.update(opportunityId,{ status: opStatus }) 
+    //         if(!opStatusRes) throw new Error("Không thể cập nhật trạng thái cơ hội")
+
+    //         const result = await contracts.create(opportunityId, cid, finalTotalCost, finalTotalRevenue, creatorId);
+    //         return result;
+
+    //     } catch (err) {
+    //         console.log('contractService.create error:', err);
+    //         throw err;
+    //     }
+    // },
+        createFromOpportunity: async (opportunityId, customerId, totalCost, totalRevenue, customerTemp, creatorId ) => {
+        try {
+            // ensure customer id (handle different return shapes from customers.create)
             let cid = customerId;
             if (!cid) {
-                // create customer from temp info and use its id
                 const createdCustomer = await customers.create(customerTemp);
-                cid = createdCustomer && createdCustomer.id;
-            }          
+                cid = createdCustomer && (
+                    createdCustomer.id ||
+                    (createdCustomer.rows && createdCustomer.rows[0] && createdCustomer.rows[0].id) ||
+                    (Array.isArray(createdCustomer) && createdCustomer[0] && createdCustomer[0].id)
+                );
+            }
+
+            // compute totals from opportunity_service (existing logic)
             let computedTotalRevenue = 0;
             let computedTotalCost = 0;
             try {
@@ -37,33 +94,46 @@ const contractService = {
                      WHERE os.opportunity_id = $1`,
                     [opportunityId]
                 );
-                const rows = rowsRes.rows || [];
+                const rows = (rowsRes && rowsRes.rows) ? rowsRes.rows : (Array.isArray(rowsRes) ? rowsRes : []);
                 for (const r of rows) {
                     const qty = r.quantity != null ? Number(r.quantity) : 1;
                     const proposed = r.proposed_price != null ? Number(r.proposed_price) : 0;
-                    // user requested proposed_price * quantity as total revenue
                     computedTotalRevenue += proposed * qty;
-
                     const baseUnit = (r.sj_base_cost != null ? Number(r.sj_base_cost) : (r.service_base_cost != null ? Number(r.service_base_cost) : 0));
                     computedTotalCost += baseUnit * qty;
                 }
             } catch (e) {
-                // if query fails, continue with provided totals (but log)
                 console.warn('Failed to compute totals from opportunity_service, falling back to provided totals:', e);
             }
 
             const finalTotalRevenue = Number.isFinite(computedTotalRevenue) && computedTotalRevenue > 0 ? computedTotalRevenue : (Number(totalRevenue) || 0);
             const finalTotalCost = Number.isFinite(computedTotalCost) && computedTotalCost > 0 ? computedTotalCost : (Number(totalCost) || 0);
 
-            const opStatus = "contract_created"
-            const opStatusRes = await opportunities.update(opportunityId,{ status: opStatus }) 
-            if(!opStatusRes) throw new Error("Không thể cập nhật trạng thái cơ hội")
+            // update opportunity status
+            const opStatus = "contract_created";
+            const opStatusRes = await opportunities.update(opportunityId, { status: opStatus });
+            if (!opStatusRes) throw new Error("Không thể cập nhật trạng thái cơ hội");
 
-            const result = await contracts.create(opportunityId, cid, finalTotalCost, finalTotalRevenue, creatorId);
-            return result;
+            // create contract (contracts.create should return row or {rows})
+            const created = await contracts.create(opportunityId, cid, finalTotalCost, finalTotalRevenue, creatorId);
+            const createdRow = created && (created.rows ? created.rows[0] : (Array.isArray(created) ? created[0] : created));
+            if (!createdRow) {
+                console.error('contracts.create returned unexpected value:', created);
+                throw new Error('Failed to create contract (unexpected model return)');
+            }
 
+            // assign code atomically if model helper exists (preferred)
+            if (typeof contracts.assignCodeIfMissing === 'function') {
+                // pass created_at if available so model can derive year/month
+                const ts = createdRow.created_at || new Date();
+                const updated = await contracts.assignCodeIfMissing(createdRow.id, ts);
+                return updated || createdRow;
+            }
+
+            // fallback: if no assign helper, return created row (you may call contracts.update(...) to set code fields)
+            return createdRow;
         } catch (err) {
-            console.log('contractService.create error:', err);
+            console.error('contractService.create error:', err && err.stack ? err.stack : err);
             throw err;
         }
     },
