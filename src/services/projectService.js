@@ -15,6 +15,11 @@ const projectService = {
         p.jobs = await projects.getJobs(id);
         return p;
     },
+    async getByContract (contractId) {
+        const result = await projects.getByContract(contractId)
+        return result
+    },
+
     async assignTeam(id, teamId){
         const result = await projects.assignTeam(id, teamId);
         return result

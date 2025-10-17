@@ -18,6 +18,13 @@ const projects = {
         );
         return result.rows[0];
     },
+    async getByContract(contractId){
+        const result = await db.query(
+            `SELECT * FROM project WHERE contract_id = $1`,
+            [contractId]
+        )
+        return result.rows[0]
+    },
 
     async update(id, fields = {}) {
         const allowed = ['name','description','start_date','end_date','status','created_by'];

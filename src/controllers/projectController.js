@@ -23,6 +23,15 @@ const projectController = {
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
+    getByContract: async (req, res) =>{
+        try{
+            const contractId = req.params.contractId;
+            const result = await projectService.getByContract(contractId);
+            return res.json(result)
+        }catch(err){
+            console.error(err)
+        }
+    },
 
     create: async (req, res) => {
         try {
