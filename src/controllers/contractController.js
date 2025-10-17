@@ -71,7 +71,7 @@ const contractController = {
         const id = req.params.id;
         const status = "not_assigned"
         try{
-            const result = await contractService.updateStatus(status, approverId, id)
+            const result = await contractService.approveByBOD(id, status, approverId)
             if(result){
                 return res.status(200).send("Đã duyệt")
             }

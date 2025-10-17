@@ -2,6 +2,7 @@ import contracts  from "../models/contracts.js";
 import customers from "../models/customers.js";
 import db from "../config/db.js";
 import opportunities from "../models/opportunities.js";
+import projects from "../models/projects.js";
 
 const contractService = {
     getAll: async () => {
@@ -90,6 +91,27 @@ const contractService = {
         // call model with normalized arg order (id, status, approverId)
         const updated = await contracts.updateStatus(id, status, approverId);
         return updated;
+    },
+    approveByBOD: async (id, status, approverId) => {
+        try{
+            const updateStatus = await contracts.updateStatus(id, status, approverId)
+            const contract = await contracts.getById(id);
+            const project = await projects.create({
+            contract_id: contract.id,
+            name: `Dự án cho hợp đồng ${contract.code}` ,
+            description: contract.description || null,
+            created_by: approverId
+        });
+
+            if(!project){
+                console.error("Tạo project fail")
+            }
+            return {
+                success:"true", message:"Duyệt thành công"
+            }
+        }catch(err){
+            console.error("Lỗi",err)
+        }
     },
 
     uploadProposalContract: async (proposalContractURL, id) => {

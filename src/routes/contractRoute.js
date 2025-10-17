@@ -17,7 +17,7 @@ contractRoute.get('/:status', contractController.getByStatus);
 contractRoute.get('/:id/services', contractController.getServices);
 contractRoute.get('/:id', contractController.getById);
 contractRoute.patch('/:id/hr-confirm', contractController.hrConfirm);
-contractRoute.patch('/:id/approve', contractController.approveByBod);
+contractRoute.post('/:id/approve', contractController.approveByBod);
 contractRoute.patch('/:id/upload-contract', upload.single('proposalContract'), contractController.uploadProposalContract);
 contractRoute.post('/:id/sign', contractController.sign);
 
