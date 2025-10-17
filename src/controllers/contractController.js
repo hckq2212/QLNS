@@ -69,7 +69,7 @@ const contractController = {
     approveByBod: async (req, res) => {
         const approverId = req.user.id;
         const id = req.params.id;
-        const status = "bod_approved"
+        const status = "not_assigned"
         try{
             const result = await contractService.updateStatus(status, approverId, id)
             if(result){

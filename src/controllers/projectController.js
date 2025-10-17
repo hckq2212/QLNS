@@ -35,6 +35,16 @@ const projectController = {
             return res.status(400).json({ error: err.message || 'Bad request' });
         }
     },
+    assignTeam: async (req, res) => {
+        try{
+            const id = req.params.id;
+            const teamId = req.body.teamId
+            const result = await projectService.assignTeam(id,teamId);
+            return res.json(result)
+        }catch(err){
+            console.log("Lỗi khi assign team", err)
+        }
+    },
 
     assignJob: async (req, res) => {
         try {

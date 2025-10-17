@@ -41,6 +41,17 @@ const projects = {
     async getJobs(projectId) {
         const result = await db.query('SELECT * FROM job WHERE project_id = $1 ORDER BY id', [projectId]);
         return result.rows;
+    },
+    async assignTeam(id, teamId){
+        const result = await db.query(
+            `UPDATE project
+             SET team_id = $1
+             WHERE id = $2
+             RETURNING *
+            `,
+            [teamId, id]
+        )
+        return result.rows[0]
     }
 }
 

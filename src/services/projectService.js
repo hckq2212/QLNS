@@ -15,7 +15,10 @@ const projectService = {
         p.jobs = await projects.getJobs(id);
         return p;
     },
-
+    async assignTeam(id, teamId){
+        const result = await projects.assignTeam(id, teamId);
+        return result
+    },
     async createProjectForContract(contractId, name, description, startDate, creatorId) {
         if (!contractId) throw new Error('contractId required');
         const created = await projects.create({ contract_id: contractId, name, description, start_date: startDate, created_by: creatorId });

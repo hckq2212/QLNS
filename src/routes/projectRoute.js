@@ -10,6 +10,7 @@ router.post('/', projectController.create)
 router.get('/:id', projectController.getById)
 router.post('/:id/assign-job', projectController.assignJob)
 router.post('/:id/close', projectController.close)
+router.patch('/:id/assign-team', projectController.assignTeam)
 
 // team lead ack endpoint
 router.post('/:id/ack', checkToken, requireRole('lead','admin'), projectController.ack)
