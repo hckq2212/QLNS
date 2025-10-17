@@ -116,8 +116,8 @@ uploadProposalContract: async (req, res) => {
     const publicId = `${folder}/${base}.${ext}`; // <-- CÓ ĐUÔI
 
     const uploadOpts = {
-      resource_type: 'auto',       // auto ok, có đuôi thì Cloudinary nhận đúng
-      public_id: publicId,         // giữ nguyên tên mình đặt
+      resource_type: 'auto',       
+      public_id: publicId,         
       use_filename: false,
       unique_filename: false,
       overwrite: false,
@@ -137,7 +137,7 @@ uploadProposalContract: async (req, res) => {
 
     return res.status(200).json({
       message: 'Upload thành công',
-      url,                                   // dùng url đã ép raw
+      url,                                   
       cloudinary_url: uploadResult.secure_url, // để debug xem Cloudinary trả gì
       resource_type_saved: uploadResult.resource_type,
       public_id: uploadResult.public_id,

@@ -14,13 +14,14 @@ import debtPaymentController from './controllers/debtPaymentController.js'
 import auth from '../src/middleware/authMiddleware.js'
 import cors from 'cors'
 import serviceJobRoute from './routes/serviceJobRoute.js'
+import teamRoute from './routes/teamRoute.js'
 
 
 const app = express()
 const port = process.env.PORT || 3000
 app.use(cors())
 app.use(express.json())
-
+app.use(express.urlencoded({ extended: true }));
 
 
 app.use('/api/auth', authRoute)
@@ -35,7 +36,7 @@ app.use('/api/service',auth, serviceRoute)
 app.use('/api/project',auth, projectRoute)
 app.use('/api/appendix',auth, contractAppendixRoute)
 app.use('/api/service-job',auth, serviceJobRoute)
-
+app.use('/api/team',auth, teamRoute)
 
 
 app.get('/',(req, res) =>{
