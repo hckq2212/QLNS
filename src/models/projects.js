@@ -10,6 +10,10 @@ const projects = {
         const result = await db.query('SELECT * FROM project WHERE id = $1', [id]);
         return result.rows[0];
     },
+    async getByStatus(status){
+        const result = await db.query('SELECT * FROM project WHERE status = $1',[status])
+        return result.rows;
+    },
 
     async create({ contract_id = null, name = null, description = null, start_date = null, end_date = null, status = 'planned', created_by = null } = {}) {
         const result = await db.query(

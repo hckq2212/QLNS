@@ -54,7 +54,15 @@ const projectController = {
             console.log("Lỗi khi assign team", err)
         }
     },
-
+    getByStatus: async (req, res) => {
+        try{
+            const status = req.params.status ;
+            const result = await projectService.getByStatus(status);
+            return res.json(result)
+        }catch(err){
+            console.error('Lỗi khi get By Status', err)
+        }
+    },
     assignJob: async (req, res) => {
         try {
             const projectId = req.params.id;

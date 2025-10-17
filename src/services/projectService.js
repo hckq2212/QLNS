@@ -19,7 +19,10 @@ const projectService = {
         const result = await projects.getByContract(contractId)
         return result
     },
-
+    async getByStatus (status) {
+        const result = await projects.getByStatus(status)
+        return result
+    },
     async assignTeam(id, teamId){
         const result = await projects.assignTeam(id, teamId);
         return result
