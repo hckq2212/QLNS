@@ -14,6 +14,10 @@ const jobService = {
         const result = await jobs.update(jobId, fields);
         return result;
     },
+    create: async(payload) => {
+        const result = await jobs.create(payload);
+        return result;
+    }
 
 }
 

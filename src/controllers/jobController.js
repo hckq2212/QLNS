@@ -19,8 +19,16 @@ const jobController = {
             console.error(`Looix khi get Job by id: ${err}`)
             return res.status(500).json({ error: 'Internal server error' });
         }
-    }
-    ,
+    },
+    create: async (req, res) => {
+        const payload = req.body || {}
+        try{
+            const result = await jobService.create(payload);
+            return res.json(result)
+        }catch(err){
+            console.error("Lỗi khi tạo job")
+        }
+    },
     update: async (req, res) => {
         try {
             const jobId = req.params.id;

@@ -35,7 +35,79 @@ const projectService = {
         const created = await projects.create({ contract_id: contractId, name, description, start_date: startDate, created_by: creatorId });
         return created;
     },
+    async ackProject(projectId, userId){
+        if (!projectId) throw new Error('projectId required');
+        if (!userId) throw new Error('userId required');
 
+        const client = await db.connect();
+        try {
+            await client.query('BEGIN');
+
+            // set lead_ack_at and project status -> in_progress
+            const upd = await client.query(
+                `UPDATE project
+                 SET lead_ack_at = now(),
+                     status = $1,
+                     updated_at = now()
+                 WHERE id = $2
+                 RETURNING *`,
+                ['in_progress', projectId]
+            );
+            const project = upd.rows[0];
+            if (!project) {
+                await client.query('ROLLBACK');
+                throw new Error('Project not found');
+            }
+
+            // if there's no related contract, commit and return project
+            const contractId = project.contract_id;
+            if (!contractId) {
+                await client.query('COMMIT');
+                return { project, jobs: [] };
+            }
+
+            // fetch contract_service items and associated names/costs
+            const csRes = await client.query(
+                `SELECT cs.service_id, cs.service_job_id, cs.qty, cs.sale_price, cs.cost_price,
+                        COALESCE(sj.name, s.name) AS job_name,
+                        COALESCE(sj.base_cost, s.base_cost, 0) AS base_cost
+                 FROM contract_service cs
+                 LEFT JOIN service_job sj ON sj.id = cs.service_job_id
+                 LEFT JOIN service s ON s.id = cs.service_id
+                 WHERE cs.contract_id = $1`,
+                [contractId]
+            );
+            const items = csRes.rows || [];
+
+            const createdJobs = [];
+            for (const it of items) {
+                const qty = it.qty != null ? Number(it.qty) : 1;
+                for (let i = 0; i < qty; i++) {
+                    const jobName = it.job_name || `Job for service ${it.service_id}`;
+                    const baseCost = it.base_cost != null ? it.base_cost : 0;
+                    const salePrice = it.sale_price != null ? it.sale_price : 0;
+
+                    const ins = await client.query(
+                        `INSERT INTO job
+                         (contract_id, project_id, service_id, service_job_id, name, base_cost, sale_price, created_by, created_at, updated_at)
+                         VALUES ($1,$2,$3,$4,$5,$6,$7,$8, now(), now())
+                         RETURNING *`,
+                        [contractId, projectId, it.service_id, it.service_job_id, jobName, baseCost, salePrice, userId]
+                    );
+                    createdJobs.push(ins.rows[0]);
+                }
+            }
+
+            await client.query('COMMIT');
+            return { project, jobs: createdJobs };
+        } catch (err) {
+            try { await client.query('ROLLBACK'); } catch (_) {}
+            console.error('ackProject error:', err && (err.stack || err.message) || err);
+            throw err;
+        } finally {
+            client.release();
+        }
+    },
     // assign a job inside a project (use job model assign + optional external cost override)
     async assignJob(projectId, jobId, assignedType, assignedId, externalCost = null, overrideReason = null, saveToCatalog = false) {
         if (!projectId) throw new Error('projectId required');

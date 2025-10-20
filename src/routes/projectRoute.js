@@ -15,6 +15,6 @@ router.post('/:id/close', projectController.close)
 router.patch('/:id/assign-team', projectController.assignTeam)
 router.get('/contract/:contractId', projectController.getByContract)
 // team lead ack endpoint
-router.post('/:id/ack', checkToken, requireRole('lead','admin'), projectController.ack)
+router.post('/:id/ack', projectController.ack)
 
 export default router;
