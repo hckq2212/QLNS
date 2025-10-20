@@ -59,17 +59,15 @@ const contracts = {
         );
         return result.rows[0];
     },
-    async signContract(id, signedFileUrl) {
-        if (!id) throw new Error('id required');
-        // Idempotent: if already signed with the same file URL, return existing row without updating timestamps
-        const cur = await db.query('SELECT id, signed_file_url, legal_confirmed_at FROM contract WHERE id = $1', [id]);
-        if (cur.rows && cur.rows.length > 0) {
-            const row = cur.rows[0];
-            if (row.signed_file_url && row.signed_file_url === signedFileUrl) {
-                return row; // unchanged
-            }
-        }
-        const result = await db.query('UPDATE contract SET signed_file_url = $1, legal_confirmed_at = now(), updated_at = now() WHERE id = $2 RETURNING *', [signedFileUrl, id]);
+    async signContract( url, id) {
+        const result = await db.query(
+            `UPDATE contract
+             SET signed_file_url = $1,
+                 updated_at = now()
+             WHERE id = $2
+             RETURNING *`,
+            [url, id]
+        );
         return result.rows[0];
     },
  

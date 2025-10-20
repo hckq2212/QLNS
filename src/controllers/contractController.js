@@ -162,21 +162,72 @@ uploadProposalContract: async (req, res) => {
   }
 },
 
-    sign: async (req, res) => {
-        try {
-            const id = req.params.id;
-            const { signed_file_url } = req.body;
-            if (!signed_file_url) return res.status(400).json({ error: 'signed_file_url required' });
-            const user = req.user || {};
-            // only HR or admin can sign
-            if (!user.role || (user.role !== 'hr' && user.role !== 'admin')) return res.status(403).json({ error: 'Forbidden' });
-            const updated = await contractService.signContract(id, signed_file_url);
-            if (!updated) return res.status(404).json({ error: 'Contract not found' });
-            return res.json(updated);
-        } catch (err) {
-            console.error('sign err', err);
-            return res.status(500).json({ error: 'Internal server error' });
-        }
+sign: async (req, res) => {
+const id = req.params.id;
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded (field name: proposalContract)' });
+
+  console.log('uploadSigned - req.file:', {
+    originalname: req.file.originalname,
+    mimetype: req.file.mimetype,
+    size: req.file.size
+  });
+
+  const allowed = [
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  ];
+  if (!allowed.includes(req.file.mimetype || '')) {
+    return res.status(400).json({ error: 'Only PDF allowed', mime: req.file.mimetype });
+  }
+
+  try {
+    const streamUpload = (buffer, opts = {}) => new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(opts, (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      });
+      stream.end(buffer);
+    });
+
+    const orig = req.file.originalname || 'file';
+    const ext = (orig.split('.').pop() || '').toLowerCase(); // 'pdf' | 'doc' | 'docx'
+    const base = orig.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_\-]/g, '_');
+
+    const folder = 'QLNS/signed_contracts'; // nên ascii để URL gọn, tránh ký tự có dấu
+    const publicId = `${folder}/${base}.${ext}`; // <-- CÓ ĐUÔI
+
+    const uploadOpts = {
+      resource_type: 'auto',       
+      public_id: publicId,         
+      use_filename: false,
+      unique_filename: false,
+      overwrite: false,
+      context: `original_filename=${orig}`
+    };
+
+    const uploadResult = await streamUpload(req.file.buffer, uploadOpts);
+
+    // Ép sinh URL đúng /raw/ + đúng ext, phòng trường hợp secure_url trả /image/
+    const url = cloudinary.url(publicId, {
+      resource_type: 'raw',       
+      secure: true
+    });
+
+    const saved = await contractService.signContract(url, id);
+
+    return res.status(200).json({
+      message: 'Upload thành công',
+      url,                                   
+      cloudinary_url: uploadResult.secure_url, 
+      resource_type_saved: uploadResult.resource_type,
+      public_id: uploadResult.public_id,
+      folder,
+      saved: !!saved
+    });
+  } catch (err) {
+    console.error('Sign contract error:', err && (err.stack || err.message) || err);
+    return res.status(500).json({ error: err.message || 'Upload failed' });
+  }
     },
 
     // helper endpoint for lead to ack a project (used by tests)

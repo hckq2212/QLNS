@@ -137,9 +137,19 @@ const contractService = {
             return result;
         }
     },
-    signContract: async (id, signedFileUrl) => {
-        const updated = await contracts.signContract(id, signedFileUrl);
-        return updated;
+    signContract: async (signedFileUrl, id) => {
+        const result = await contracts.signContract(signedFileUrl, id);
+        if (!result) return null;
+
+        const status = 'deployed';
+        try {
+            // update contract status using normalized model method
+            const statusRes = await contracts.updateStatus(id, status, null);
+            return statusRes || result;
+        } catch (err) {
+            console.error('Lỗi khi thay đổi trạng thái cho hợp đồng', err && (err.stack || err.message) || err);
+            return result;
+        }
     },
 
     setContractNumberAndStatus: async (id, manualCode, actorId = null) => {

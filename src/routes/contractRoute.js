@@ -22,7 +22,7 @@ contractRoute.patch('/:id/upload-contract', upload.single('proposalContract'), c
 contractRoute.patch('/:id', contractController.update)
 contractRoute.post('/:id/approve', contractController.approveByBod);
 
-contractRoute.post('/:id/sign',upload.single('signedContract'), contractController.sign);
+contractRoute.patch('/:id/sign',upload.single('signedContract'), contractController.sign);
 
 
 export default contractRoute;
