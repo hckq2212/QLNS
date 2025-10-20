@@ -23,6 +23,10 @@ const projectService = {
         const result = await projects.getByStatus(status)
         return result
     },
+    async update (id, payload) {
+        const result = await projects.update(id, payload);
+        return result;
+    },
     async assignTeam(id, teamId){
         const result = await projects.assignTeam(id, teamId);
         return result

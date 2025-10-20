@@ -9,7 +9,7 @@ router.get('/', projectController.list)
 router.post('/', projectController.create)
 router.get('/status/:status', projectController.getByStatus)
 router.get('/:id', projectController.getById)
-
+router.put('/:id',projectController.update)
 router.post('/:id/assign-job', projectController.assignJob)
 router.post('/:id/close', projectController.close)
 router.patch('/:id/assign-team', projectController.assignTeam)

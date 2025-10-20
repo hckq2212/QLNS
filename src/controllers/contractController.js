@@ -195,7 +195,7 @@ uploadProposalContract: async (req, res) => {
     getServices: async (req, res) => {
         try {
             const contractId = req.params.id;
-            const rows = await contractService.getServicesByContractId(contractId);
+            const rows = await contractService.getServices(contractId);
             return res.json(rows);
         } catch (err) {
             console.error('getServices err', err);

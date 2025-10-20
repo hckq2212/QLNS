@@ -138,6 +138,10 @@ const contracts = {
             client.release();
         }
     },
+    async getServices(contractId) {
+        const result = await db.query('SELECT * FROM contract_service WHERE contract_id = $1', [contractId]);
+        return result.rows;
+    }
     
 };
 export default contracts;

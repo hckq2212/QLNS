@@ -17,7 +17,13 @@ const contractService = {
         const result = await contracts.getById(contractId);
         return result;
     },
-        createFromOpportunity: async (opportunityId, customerId, totalCost, totalRevenue, customerTemp, creatorId ) => {
+    getServices: async(contractId) => {
+        if (!contractId) throw new Error('contractId is required');
+        const rows = await contracts.getServices(contractId);
+        return rows
+    },
+    
+    createFromOpportunity: async (opportunityId, customerId, totalCost, totalRevenue, customerTemp, creatorId ) => {
         try {
             // ensure customer id (handle different return shapes from customers.create)
             let cid = customerId;
