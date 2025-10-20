@@ -55,12 +55,15 @@ const projectController = {
         }
     },
     update: async (req, res) => {
-        try{
-            const id = req.params.id;
-            const payload = req.body || {};
+        const id = req.params.id;
+        const payload = req.body || {};
+
+        try {
             const result = await projectService.update(id, payload);
-        }catch(err){
-            console.log('Lỗi khi update Project',err)
+            res.status(200).json({ message: 'Cập nhật thành công', project: result });
+        } catch (err) {
+            console.error('Lỗi khi update Project', err && (err.stack || err.message) || err);
+            return res.status(500).json({ error: err.message || 'Server error' });
         }
     },
     getByStatus: async (req, res) => {

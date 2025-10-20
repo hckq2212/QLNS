@@ -16,10 +16,13 @@ contractRoute.post('/opportunity/:opportunityId', contractController.createFromO
 contractRoute.get('/:status', contractController.getByStatus);
 contractRoute.get('/:id/services', contractController.getServices);
 contractRoute.get('/:id', contractController.getById);
+
 contractRoute.patch('/:id/hr-confirm', contractController.hrConfirm);
-contractRoute.post('/:id/approve', contractController.approveByBod);
 contractRoute.patch('/:id/upload-contract', upload.single('proposalContract'), contractController.uploadProposalContract);
-contractRoute.post('/:id/sign', contractController.sign);
+contractRoute.patch('/:id', contractController.update)
+contractRoute.post('/:id/approve', contractController.approveByBod);
+
+contractRoute.post('/:id/sign',upload.single('signedContract'), contractController.sign);
 
 
 export default contractRoute;

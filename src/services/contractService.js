@@ -22,7 +22,10 @@ const contractService = {
         const rows = await contracts.getServices(contractId);
         return rows
     },
-    
+    update: async(id, payload) => {
+        const result = await contracts.update(id, payload);
+        return result;
+    },
     createFromOpportunity: async (opportunityId, customerId, totalCost, totalRevenue, customerTemp, creatorId ) => {
         try {
             // ensure customer id (handle different return shapes from customers.create)

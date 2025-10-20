@@ -141,7 +141,25 @@ const contracts = {
     async getServices(contractId) {
         const result = await db.query('SELECT * FROM contract_service WHERE contract_id = $1', [contractId]);
         return result.rows;
-    }
+    },
+       async update(id, fields = {}) {
+        const allowed = ['status', 'total_revenue', 'start_date', 'end_date'];
+        const setClauses = [];
+        const params = [];
+        let idx = 1;
+        for (const key of allowed) {
+            if (Object.prototype.hasOwnProperty.call(fields, key)) {
+                setClauses.push(`${key} = $${idx}`);
+                params.push(fields[key]);
+                idx++;
+            }
+        }
+        if (setClauses.length === 0) return null;
+        params.push(id);
+        const sql = `UPDATE contract SET ${setClauses.join(', ')} WHERE id = $${idx} RETURNING *`;
+        const result = await db.query(sql, params);
+        return result.rows[0];
+    },
     
 };
 export default contracts;

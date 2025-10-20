@@ -44,7 +44,7 @@ const projects = {
         }
         if (setClauses.length === 0) return null;
         params.push(id);
-        const sql = `UPDATE project SET ${setClauses.join(', ')} , created_at = coalesce(created_at, now()) WHERE id = $${idx} RETURNING *`;
+        const sql = `UPDATE project SET ${setClauses.join(', ')} WHERE id = $${idx} RETURNING *`;
         const result = await db.query(sql, params);
         return result.rows[0];
     },

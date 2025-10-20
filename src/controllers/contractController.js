@@ -32,6 +32,18 @@ const contractController = {
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
+    update: async (req, res) => {
+        const id = req.params.id;
+        const payload = req.body || {};
+
+        try {
+            const result = await contractService.update(id, payload);
+            res.status(200).json({ message: 'Cập nhật thành công', contract: result });
+        } catch (err) {
+            console.error('Lỗi khi update contract', err && (err.stack || err.message) || err);
+            return res.status(500).json({ error: err.message || 'Server error' });
+        }
+    },
     createFromOpportunity: async (req, res) => {
         if (!req.user?.id) {
             return res.status(401).json({ error: 'Unauthorized' });
