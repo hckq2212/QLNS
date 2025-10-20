@@ -164,7 +164,7 @@ uploadProposalContract: async (req, res) => {
 
 sign: async (req, res) => {
 const id = req.params.id;
-  if (!req.file) return res.status(400).json({ error: 'No file uploaded (field name: proposalContract)' });
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded (field name: signedContract)' });
 
   console.log('uploadSigned - req.file:', {
     originalname: req.file.originalname,
@@ -194,7 +194,7 @@ const id = req.params.id;
     const base = orig.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_\-]/g, '_');
 
     const folder = 'QLNS/signed_contracts'; // nên ascii để URL gọn, tránh ký tự có dấu
-    const publicId = `${folder}/${base}.${ext}`; // <-- CÓ ĐUÔI
+    const publicId = `${folder}/${base}.${ext}`; 
 
     const uploadOpts = {
       resource_type: 'auto',       

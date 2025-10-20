@@ -142,12 +142,24 @@ const contractService = {
         if (!result) return null;
 
         const status = 'deployed';
-        try {
-            // update contract status using normalized model method
+    try {
+            // update contract status
             const statusRes = await contracts.updateStatus(id, status, null);
-            return statusRes || result;
+
+            // update related project (if any)
+            let projectRes = null;
+            if (typeof projects.getByContract === 'function') {
+                const proj = await projects.getByContract(id);
+                if (proj && proj.id && typeof projects.update === 'function') {
+                    projectRes = await projects.update(proj.id, { status: 'ready' });
+                }
+            } else {
+                console.warn('projects.getByContract not implemented - skipping project status update');
+            }
+
+            return { contract: statusRes || result, project: projectRes };
         } catch (err) {
-            console.error('Lỗi khi thay đổi trạng thái cho hợp đồng', err && (err.stack || err.message) || err);
+            console.error('Lỗi khi thay đổi trạng thái cho hợp đồng hoặc dự án', err && (err.stack || err.message) || err);
             return result;
         }
     },
