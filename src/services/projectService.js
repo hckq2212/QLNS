@@ -139,7 +139,7 @@ const projectService = {
                 }
             }
 
-            // partner-specific logic: check partner catalog (use model or query)
+            // partner-specific logic: check partner catalog (partner_service_job table)
             let appendOverrideNote = false;
             let catalogEntry = null;
             if (assignedType === 'partner') {
@@ -148,31 +148,32 @@ const projectService = {
                     throw new Error('job is missing service_job information for partner assignment');
                 }
 
-                // use model helper if it supports client param; otherwise use direct query
-                if (typeof partnerServiceJobs.findByPartnerAndJob === 'function') {
-                    try {
-                        catalogEntry = await partnerServiceJobs.findByPartnerAndJob(assignedId, job.service_job_id, client);
-                    } catch (e) {
-                        // fallback to direct query if model doesn't support client
-                        const pe = await client.query(
-                            'SELECT external_cost FROM partner_service_jobs WHERE partner_id = $1 AND service_job_id = $2 LIMIT 1',
-                            [assignedId, job.service_job_id]
-                        );
-                        catalogEntry = pe.rows[0] || null;
+                const pe = await client.query(
+                    `SELECT COALESCE(
+                        (CASE WHEN column_name IS NOT NULL THEN (SELECT external_cost FROM partner_service_job WHERE partner_id = $1 AND service_job_id = $2 LIMIT 1) END),
+                        (SELECT base_cost FROM partner_service_job WHERE partner_id = $1 AND service_job_id = $2 LIMIT 1)
+                    ) AS catalog_cost`,
+                    [assignedId, job.service_job_id]
+                ).catch(() => ({ rows: [] }));
+
+                // fallback simpler query (handles schemas without external_cost)
+                if (!pe || !pe.rows || pe.rows.length === 0) {
+                    const pe2 = await client.query(
+                        'SELECT base_cost, (CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=$3 AND column_name=$4) THEN (SELECT external_cost FROM partner_service_job WHERE partner_id = $1 AND service_job_id = $2 LIMIT 1) ELSE NULL END) AS external_cost FROM partner_service_job WHERE partner_id = $1 AND service_job_id = $2 LIMIT 1',
+                        [assignedId, job.service_job_id, 'partner_service_job', 'external_cost']
+                    ).catch(() => ({ rows: [] }));
+                    if (pe2 && pe2.rows && pe2.rows[0]) {
+                        catalogEntry = { catalog_cost: (pe2.rows[0].external_cost != null ? Number(pe2.rows[0].external_cost) : (pe2.rows[0].base_cost != null ? Number(pe2.rows[0].base_cost) : null)) };
                     }
                 } else {
-                    const pe = await client.query(
-                        'SELECT external_cost FROM partner_service_jobs WHERE partner_id = $1 AND service_job_id = $2 LIMIT 1',
-                        [assignedId, job.service_job_id]
-                    );
-                    catalogEntry = pe.rows[0] || null;
+                    catalogEntry = { catalog_cost: pe.rows[0].catalog_cost != null ? Number(pe.rows[0].catalog_cost) : null };
                 }
 
-                const catalogCost = catalogEntry && catalogEntry.external_cost != null ? Number(catalogEntry.external_cost) : null;
+                const catalogCost = catalogEntry && catalogEntry.catalog_cost != null ? Number(catalogEntry.catalog_cost) : null;
                 if (resolvedExternalCost == null) {
                     if (catalogCost == null) {
                         await client.query('ROLLBACK');
-                        throw new Error('Catalog entry missing external cost, please provide externalCost');
+                        throw new Error('Catalog entry missing external/base cost, please provide externalCost');
                     }
                     resolvedExternalCost = catalogCost;
                 } else if (catalogCost == null || Math.abs(resolvedExternalCost - catalogCost) > 0.01) {
@@ -186,46 +187,36 @@ const projectService = {
                 }
             }
 
-            // perform assignment update (use column names from your schema)
-            if (assignedType === 'user') {
-                await client.query(
-                    'UPDATE job SET assigned_user_id = $1, assigned_type = $2, updated_at = now() WHERE id = $3',
-                    [assignedId, 'user', jobId]
-                );
-            } else {
-                await client.query(
-                    'UPDATE job SET assigned_partner_id = $1, assigned_type = $2, updated_at = now() WHERE id = $3',
-                    [assignedId, 'partner', jobId]
-                );
-            }
+            // assignment: write into assigned_id + assigned_type (schema uses these columns)
+            await client.query(
+                'UPDATE job SET assigned_id = $1, assigned_type = $2, updated_at = now() WHERE id = $3',
+                [assignedId, assignedType, jobId]
+            );
 
             // update external_cost and note if needed
             if (resolvedExternalCost != null) {
-                const currentNote = job.note || '';
+                const currentNote = job.description || job.note || '';
                 let newNote = currentNote;
                 if (appendOverrideNote && overrideReason) {
-                    const safeReason = String(overrideReason).slice(0, 1000); // limit length
-                    newNote = `${currentNote}\n[External cost override by assign] ${safeReason}`;
+                    const safeReason = String(overrideReason).slice(0, 1000);
+                    newNote = `${currentNote}\n[External cost override] ${safeReason}`;
                 } else if (overrideReason) {
-                    newNote = `${currentNote}\n[External cost override by assign] ${String(overrideReason).slice(0,1000)}`;
+                    newNote = `${currentNote}\n[External cost note] ${String(overrideReason).slice(0,1000)}`;
                 }
+
                 await client.query(
-                    'UPDATE job SET external_cost = $1, note = $2, updated_at = now() WHERE id = $3',
+                    'UPDATE job SET external_cost = $1, description = $2, updated_at = now() WHERE id = $3',
                     [resolvedExternalCost, newNote, jobId]
                 );
 
-                // optionally upsert catalog (do it inside tx)
-                if ((!catalogEntry || appendOverrideNote) && saveToCatalog) {
-                    if (typeof partnerServiceJobs.upsert === 'function') {
-                        await partnerServiceJobs.upsert(assignedId, job.service_job_id, resolvedExternalCost, client);
-                    } else {
-                        await client.query(
-                            `INSERT INTO partner_service_jobs (partner_id, service_job_id, external_cost, created_at, updated_at)
-                             VALUES ($1,$2,$3, now(), now())
-                             ON CONFLICT (partner_id, service_job_id) DO UPDATE SET external_cost = EXCLUDED.external_cost, updated_at = now()`,
-                            [assignedId, job.service_job_id, resolvedExternalCost]
-                        );
-                    }
+                // optionally upsert catalog (use base_cost column if present)
+                if (saveToCatalog) {
+                    await client.query(
+                        `INSERT INTO partner_service_job (partner_id, service_job_id, base_cost, created_at)
+                         VALUES ($1,$2,$3, now())
+                         ON CONFLICT (partner_id, service_job_id) DO UPDATE SET base_cost = EXCLUDED.base_cost, note = COALESCE(partner_service_job.note, '' )`,
+                        [assignedId, job.service_job_id, resolvedExternalCost]
+                    ).catch(() => {/* ignore if schema differs */});
                 }
             }
 
