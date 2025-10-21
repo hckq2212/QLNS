@@ -51,7 +51,7 @@ const projectService = {
                      updated_at = now()
                  WHERE id = $2
                  RETURNING *`,
-                ['in_progress', projectId]
+                ['not_assigned', projectId]
             );
             const project = upd.rows[0];
             if (!project) {
@@ -114,90 +114,132 @@ const projectService = {
         if (!jobId) throw new Error('jobId required');
         if (!assignedType || (assignedType !== 'user' && assignedType !== 'partner')) throw new Error('assignedType must be "user" or "partner"');
 
-        // ensure job belongs to project
-        const job = await jobsModel.getById(jobId);
-        if (!job) throw new Error('job not found');
-        if (String(job.project_id) !== String(projectId)) throw new Error('job does not belong to project');
+        const client = await db.connect();
+        try {
+            await client.query('BEGIN');
 
-        const saveCatalogFlag = Boolean(saveToCatalog);
-
-        let resolvedExternalCost = externalCost != null ? Number(externalCost) : null;
-        if (resolvedExternalCost != null) {
-            if (!Number.isFinite(resolvedExternalCost)) {
-                throw new Error('externalCost must be a valid number');
+            // lock job row
+            const jobRes = await client.query('SELECT * FROM job WHERE id = $1 FOR UPDATE', [jobId]);
+            const job = jobRes.rows[0];
+            if (!job) {
+                await client.query('ROLLBACK');
+                throw new Error('job not found');
             }
-            if (resolvedExternalCost < 0) {
-                throw new Error('externalCost must be a non-negative number');
-            }
-        }
-
-        let appendOverrideNote = false;
-        let catalogEntry = null;
-
-        if (assignedType === 'partner') {
-            if (!job.service_job_id) {
-                throw new Error('job is missing service_job information for partner assignment');
+            if (String(job.project_id) !== String(projectId)) {
+                await client.query('ROLLBACK');
+                throw new Error('job does not belong to project');
             }
 
-            catalogEntry = await partnerServiceJobs.findByPartnerAndJob(assignedId, job.service_job_id);
+            // resolve external cost validation
+            let resolvedExternalCost = externalCost != null ? Number(externalCost) : null;
+            if (resolvedExternalCost != null) {
+                if (!Number.isFinite(resolvedExternalCost) || resolvedExternalCost < 0) {
+                    await client.query('ROLLBACK');
+                    throw new Error('externalCost must be a non-negative number');
+                }
+            }
 
-            if (catalogEntry) {
-                const catalogCost = catalogEntry.external_cost != null ? Number(catalogEntry.external_cost) : null;
+            // partner-specific logic: check partner catalog (use model or query)
+            let appendOverrideNote = false;
+            let catalogEntry = null;
+            if (assignedType === 'partner') {
+                if (!job.service_job_id) {
+                    await client.query('ROLLBACK');
+                    throw new Error('job is missing service_job information for partner assignment');
+                }
+
+                // use model helper if it supports client param; otherwise use direct query
+                if (typeof partnerServiceJobs.findByPartnerAndJob === 'function') {
+                    try {
+                        catalogEntry = await partnerServiceJobs.findByPartnerAndJob(assignedId, job.service_job_id, client);
+                    } catch (e) {
+                        // fallback to direct query if model doesn't support client
+                        const pe = await client.query(
+                            'SELECT external_cost FROM partner_service_jobs WHERE partner_id = $1 AND service_job_id = $2 LIMIT 1',
+                            [assignedId, job.service_job_id]
+                        );
+                        catalogEntry = pe.rows[0] || null;
+                    }
+                } else {
+                    const pe = await client.query(
+                        'SELECT external_cost FROM partner_service_jobs WHERE partner_id = $1 AND service_job_id = $2 LIMIT 1',
+                        [assignedId, job.service_job_id]
+                    );
+                    catalogEntry = pe.rows[0] || null;
+                }
+
+                const catalogCost = catalogEntry && catalogEntry.external_cost != null ? Number(catalogEntry.external_cost) : null;
                 if (resolvedExternalCost == null) {
                     if (catalogCost == null) {
+                        await client.query('ROLLBACK');
                         throw new Error('Catalog entry missing external cost, please provide externalCost');
                     }
                     resolvedExternalCost = catalogCost;
                 } else if (catalogCost == null || Math.abs(resolvedExternalCost - catalogCost) > 0.01) {
                     appendOverrideNote = true;
                     if (!overrideReason) {
+                        await client.query('ROLLBACK');
                         throw new Error('overrideReason is required when overriding catalog external cost');
                     }
                 } else {
                     resolvedExternalCost = catalogCost;
                 }
+            }
+
+            // perform assignment update (use column names from your schema)
+            if (assignedType === 'user') {
+                await client.query(
+                    'UPDATE job SET assigned_user_id = $1, assigned_type = $2, updated_at = now() WHERE id = $3',
+                    [assignedId, 'user', jobId]
+                );
             } else {
-                if (resolvedExternalCost == null) {
-                    throw new Error('externalCost is required when partner has no catalog entry');
-                }
-                appendOverrideNote = true;
-                if (!overrideReason) {
-                    throw new Error('overrideReason is required when assigning partner without catalog');
-                }
+                await client.query(
+                    'UPDATE job SET assigned_partner_id = $1, assigned_type = $2, updated_at = now() WHERE id = $3',
+                    [assignedId, 'partner', jobId]
+                );
             }
-        }
-        // assign (this validates user/partner existence)
-        const updatedJob = await jobsModel.assign(assignedType, assignedId, jobId);
 
-        // if externalCost provided, update job.external_cost and append override reason to note
-       if (assignedType === 'partner') {
+            // update external_cost and note if needed
             if (resolvedExternalCost != null) {
-                let note = updatedJob.note || '';
+                const currentNote = job.note || '';
+                let newNote = currentNote;
                 if (appendOverrideNote && overrideReason) {
-                    const appended = `\n[External cost override by assign] ${overrideReason}`;
-                    note = note + appended;
+                    const safeReason = String(overrideReason).slice(0, 1000); // limit length
+                    newNote = `${currentNote}\n[External cost override by assign] ${safeReason}`;
+                } else if (overrideReason) {
+                    newNote = `${currentNote}\n[External cost override by assign] ${String(overrideReason).slice(0,1000)}`;
                 }
-                await db.query('UPDATE job SET external_cost = $1, note = $2, updated_at = now() WHERE id = $3', [resolvedExternalCost, note, jobId]);
+                await client.query(
+                    'UPDATE job SET external_cost = $1, note = $2, updated_at = now() WHERE id = $3',
+                    [resolvedExternalCost, newNote, jobId]
+                );
 
-                if ((!catalogEntry || appendOverrideNote) && saveCatalogFlag) {
-                    await partnerServiceJobs.upsert(assignedId, job.service_job_id, resolvedExternalCost);
+                // optionally upsert catalog (do it inside tx)
+                if ((!catalogEntry || appendOverrideNote) && saveToCatalog) {
+                    if (typeof partnerServiceJobs.upsert === 'function') {
+                        await partnerServiceJobs.upsert(assignedId, job.service_job_id, resolvedExternalCost, client);
+                    } else {
+                        await client.query(
+                            `INSERT INTO partner_service_jobs (partner_id, service_job_id, external_cost, created_at, updated_at)
+                             VALUES ($1,$2,$3, now(), now())
+                             ON CONFLICT (partner_id, service_job_id) DO UPDATE SET external_cost = EXCLUDED.external_cost, updated_at = now()`,
+                            [assignedId, job.service_job_id, resolvedExternalCost]
+                        );
+                    }
                 }
             }
-            const refreshed = await jobsModel.getById(jobId);
-            return refreshed;
-        }
-        if (resolvedExternalCost != null) {
-            let note = updatedJob.note || '';
-            if (overrideReason) {
-                const appended = `\n[External cost override by assign] ${overrideReason}`;
-                note = note + appended;
-            }
-           await db.query('UPDATE job SET external_cost = $1, note = $2, updated_at = now() WHERE id = $3', [resolvedExternalCost, note, jobId]);
-            const refreshed = await jobsModel.getById(jobId);
-            return refreshed;
-        }
 
-        return updatedJob;
+            // return refreshed job
+            const refreshed = await client.query('SELECT * FROM job WHERE id = $1', [jobId]);
+            await client.query('COMMIT');
+            return refreshed.rows[0];
+        } catch (err) {
+            try { await client.query('ROLLBACK'); } catch (_) {}
+            console.error('assignJob error:', err && (err.stack || err.message) || err);
+            throw err;
+        } finally {
+            client.release();
+        }
     },
 
     async closeProject(projectId) {

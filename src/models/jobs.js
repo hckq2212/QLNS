@@ -83,6 +83,17 @@ const jobs = {
         } finally {
             if (usedClient && usedClient.release) usedClient.release();
         }
+    },
+    async getByProject (id) {
+        try{
+            const result = await db.query(`
+                SELECT * FROM job WHERE project_id = $1
+                `,
+            [id])
+            return result.rows
+        }catch(err){
+            console.error(err)
+        }
     }
 }
 

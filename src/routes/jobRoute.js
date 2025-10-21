@@ -5,6 +5,7 @@ import express from 'express'
 const jobRoute = express.Router();
 
 jobRoute.get('/', jobController.getAll);
+jobRoute.get('/project/:projectId', jobController.getByProject)
 jobRoute.get('/:id', jobController.getById);
 jobRoute.patch('/:id', jobController.update);
 jobRoute.post('/', jobController.create)

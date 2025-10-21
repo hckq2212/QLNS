@@ -17,6 +17,10 @@ const jobService = {
     create: async(payload) => {
         const result = await jobs.create(payload);
         return result;
+    },
+    getByProject: async(id) => {
+        const result = await jobs.getByProject(id);
+        return result;
     }
 
 }

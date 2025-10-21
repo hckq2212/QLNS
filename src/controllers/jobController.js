@@ -42,6 +42,15 @@ const jobController = {
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
+    getByProject: async(req, res) => {
+        try{
+            const id = req.params.projectId;
+            const result = await jobService.getByProject(id);
+            return res.json(result)
+        }catch(err){
+
+        }
+    },
 
 }
 
