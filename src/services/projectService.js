@@ -109,7 +109,7 @@ const projectService = {
         }
     },
     // assign a job inside a project (use job model assign + optional external cost override)
-    async assignJob(projectId, jobId, assignedType, assignedId, externalCost = null, overrideReason = null, saveToCatalog = false) {
+    async assignJob(projectId, jobId, assignedType, assignedId, externalCost = null, overrideReason = null, saveToCatalog = false, start_date, deadline) {
         if (!projectId) throw new Error('projectId required');
         if (!jobId) throw new Error('jobId required');
         if (!assignedType || (assignedType !== 'user' && assignedType !== 'partner')) throw new Error('assignedType must be "user" or "partner"');
@@ -189,8 +189,8 @@ const projectService = {
 
             // assignment: write into assigned_id + assigned_type (schema uses these columns)
             await client.query(
-                'UPDATE job SET assigned_id = $1, assigned_type = $2, updated_at = now() WHERE id = $3',
-                [assignedId, assignedType, jobId]
+                'UPDATE job SET assigned_id = $1, assigned_type = $2,start_date = $3, deadline = $4, updated_at = now() WHERE id = $5',
+                [assignedId, assignedType,start_date, deadline, jobId]
             );
 
             // update external_cost and note if needed

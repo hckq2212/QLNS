@@ -59,7 +59,7 @@ const opportunities = {
     },
 
     async approve(id, approverId) {
-        const result = await runner.query(
+        const result = await db.query(
             "UPDATE opportunity SET status = 'approved', approved_by = $1, updated_at = now() WHERE id = $2 AND status = 'waiting_bod_approval' RETURNING *",
             [approverId, id]
         );

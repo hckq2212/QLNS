@@ -19,8 +19,8 @@ const debtService = {
         const result = await debts.create(contractId, amount, dueDate);
         if(result){
             try{
-                const status = 'waiting_hr_confirm'
-                const statusRes = await contracts.updateStatus(status)
+                const status = 'waiting_hr_confirm' 
+                const statusRes = await contracts.updateStatus(contractId,status)
             }catch(err){
                 console.error("Lỗi khi update status cho contract", err)
             }
