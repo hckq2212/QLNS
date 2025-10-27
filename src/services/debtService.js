@@ -15,7 +15,7 @@ const debtService = {
         return result;
     }
     ,
-    create: async (contractId, amount, dueDate) => {
+    create: async (contractId, amount, dueDate, title) => {
         const result = await debts.create(contractId, amount, dueDate, title);
         if(result){
             try{

@@ -40,7 +40,7 @@ const debtController = {
     create: async(req, res) => {
         try{
             const body = {
-                contract_id: req.body.contract_id,
+                contract_id: req.body.contract_id || req.params.contract_id || req.query.contract_id,
                 amount: req.body.amount,
                 due_date: req.body.due_date || null,
                 title: req.body.title || null
@@ -54,8 +54,14 @@ const debtController = {
     },
     createForContract: async(req, res) => {
         try{
+            const body = {
+                contract_id: req.body.contract_id,
+                amount: req.body.amount,
+                due_date: req.body.due_date || null,
+                title: req.body.title || null
+            }
             const contractId = req.params.contract_id || req.query.contract_id
-            const result = await debtService.create(contractId, amount, due_date);
+            const result = await debtService.create(body.contract_id, body.amount, body.due_date, body.title);
             return result
         }catch(err){
             console.error(err)

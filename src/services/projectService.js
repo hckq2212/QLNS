@@ -79,6 +79,20 @@ const projectService = {
             );
             const items = csRes.rows || [];
 
+              if (items.length === 0) {
+                console.log(`ackProject: no contract_service rows for contract ${contractId}, creating a default job`);
+                const defaultName = `${project.name || 'Project'} - Initial job`;
+                const ins = await client.query(
+                    `INSERT INTO job
+                     (contract_id, project_id, name, base_cost, sale_price, status, created_by, created_at, updated_at)
+                     VALUES ($1,$2,$3,$4,$5,$6,$7, now(), now())
+                     RETURNING *`,
+                    [contractId, projectId, defaultName, 0, 0, 'not_assigned', userId]
+                );
+                await client.query('COMMIT');
+                return { project, jobs: [ins.rows[0]] };
+            }
+
             const createdJobs = [];
             for (const it of items) {
                 const qty = it.qty != null ? Number(it.qty) : 1;

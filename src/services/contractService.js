@@ -106,11 +106,11 @@ const contractService = {
             const updateStatus = await contracts.updateStatus(id, status, approverId)
             const contract = await contracts.getById(id);
             const project = await projects.create({
-            contract_id: contract.id,
-            name: `Dự án cho hợp đồng ${contract.code}` ,
-            description: contract.description || null,
-            created_by: approverId
-        });
+                contract_id: contract.id,
+                name: `Dự án cho hợp đồng ${contract.code}` ,
+                description: contract.description || null,
+                created_by: approverId
+            });
 
             if(!project){
                 console.error("Tạo project fail")
@@ -151,7 +151,7 @@ const contractService = {
             if (typeof projects.getByContract === 'function') {
                 const proj = await projects.getByContract(id);
                 if (proj && proj.id && typeof projects.update === 'function') {
-                    projectRes = await projects.update(proj.id, { status: 'ready' });
+                    projectRes = await projects.update(proj.id, { status: 'not_assigned' });
                 }
             } else {
                 console.warn('projects.getByContract not implemented - skipping project status update');

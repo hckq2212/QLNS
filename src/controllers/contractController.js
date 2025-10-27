@@ -1,5 +1,6 @@
 import contractService from "../services/contractService.js";
 import cloudinary from "../config/cloudinary.js";
+import generateDownloadUrl from "../config/cloudinaryDownload.js";
 
 const contractController = {
     getAll: async (req, res) => {
@@ -144,7 +145,16 @@ uploadProposalContract: async (req, res) => {
     // Dùng URL do Cloudinary trả (ổn định)
     const url = uploadResult.secure_url;
 
-    const saved = await contractService.uploadProposalContract(url, id);
+    // const saved = await contractService.uploadProposalContract(url, id);
+
+    const downloadUrl = generateDownloadUrl(uploadResult.public_id, {
+      resource_type: 'raw',
+      type: 'upload',
+      attachment: true,
+      target_filename: req.file.originalname
+    })
+
+    await contractService.uploadProposalContract(downloadUrl, req.params.id)
 
     return res.status(200).json({
       message: 'Upload thành công',
@@ -153,7 +163,6 @@ uploadProposalContract: async (req, res) => {
       resource_type_saved: uploadResult.resource_type, // 'raw'
       public_id: uploadResult.public_id,   // ví dụ: 'QLNS/contracts/ten_file'
       folder,
-      saved: !!saved
     });
   } catch (err) {
     console.error('uploadProposalContract error:', err && (err.stack || err.message) || err);
