@@ -20,7 +20,11 @@ const userService = {
 		};
 		const result = await users.update(userId, fields);
 		return result;
-    }
+    },
+	getPersonalInfo: async(id) => {
+		const result = await users.getPersonalInfo(id);
+		return result
+	}
 }
 
 export default userService

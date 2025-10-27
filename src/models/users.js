@@ -51,7 +51,7 @@ const users = {
 
   // role param may be a role name (string) or a numeric id. If a name is given we
   // resolve it to an id using the roles helper.
-  async createUser(username, passwordHash, full_name, role, phoneNumber, email) {
+  async createUser(username, passwordHash, full_name, role, phoneNumber, email, avatar='https://res.cloudinary.com/dmmsrmncn/image/upload/v1761535726/avatar_pfin2n.jpg') {
     let roleId = null;
     if (role !== undefined && role !== null) {
       if (typeof role === 'number') {
@@ -65,8 +65,8 @@ const users = {
     }
 
     const result = await db.query(
-      'INSERT INTO "user" (username, password, full_name, role_id, phone, email) VALUES($1, $2, $3, $4, $5, $6) RETURNING id, username, full_name, email, phone, status, created_at, role_id',
-      [username, passwordHash, full_name, roleId, phoneNumber, email]
+      'INSERT INTO "user" (username, password, full_name, role_id, phone, email, avatar) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id, username, full_name, email, phone, status, created_at, role_id',
+      [username, passwordHash, full_name, roleId, phoneNumber, email, avatar]
     );
 
     const created = result.rows[0];
@@ -139,6 +139,13 @@ const users = {
     );
     return result.rows[0];
   },
+  async getPersonalInfo (id) {
+    const result = await db.query(
+      `SELECT username, full_name, phone, avatar, role_id FROM "user" WHERE id = $1`,
+      [id]
+    )
+    return result.rows[0];
+  }
 };
 
 export default users;

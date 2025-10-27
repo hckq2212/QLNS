@@ -16,7 +16,7 @@ const debtService = {
     }
     ,
     create: async (contractId, amount, dueDate) => {
-        const result = await debts.create(contractId, amount, dueDate);
+        const result = await debts.create(contractId, amount, dueDate, title);
         if(result){
             try{
                 const status = 'waiting_hr_confirm' 

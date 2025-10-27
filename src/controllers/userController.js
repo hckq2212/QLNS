@@ -52,6 +52,15 @@ const userController = {
             console.error('update user error:', err);
             return res.status(500).json({ error: 'Internal server error' });
         }
+    },
+    getPersonalInfo: async(req, res) => {
+        const id = req.user.id;
+        try{
+            const result = await userService.getPersonalInfo(id);
+            return res.json(result)
+        }catch(err){
+            console.error('Lỗi khi lấy thông tin cá nhân', err)
+        }
     }
 
 };

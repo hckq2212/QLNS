@@ -43,9 +43,10 @@ const debtController = {
                 contract_id: req.body.contract_id,
                 amount: req.body.amount,
                 due_date: req.body.due_date || null,
+                title: req.body.title || null
             }
             console.log(body)
-            const result = await debtService.create(body.contract_id, body.amount, body.due_date);
+            const result = await debtService.create(body.contract_id, body.amount, body.due_date, body.title);
             return res.status(201).json(result);
         }catch(err){
             console.error(err)
