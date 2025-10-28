@@ -51,22 +51,12 @@ const users = {
 
   // role param may be a role name (string) or a numeric id. If a name is given we
   // resolve it to an id using the roles helper.
-  async createUser(username, passwordHash, full_name, role, phoneNumber, email, avatar='https://res.cloudinary.com/dmmsrmncn/image/upload/v1761535726/avatar_pfin2n.jpg') {
-    let roleId = null;
-    if (role !== undefined && role !== null) {
-      if (typeof role === 'number') {
-        roleId = role;
-      } else if (/^\d+$/.test(String(role))) {
-        roleId = Number(role);
-      } else {
-        const r = await roles.getRoleByName(role);
-        roleId = r ? r.id : null;
-      }
-    }
+  async createUser(username, passwordHash, full_name, role_id, phoneNumber, email, avatar='https://res.cloudinary.com/dmmsrmncn/image/upload/v1761535726/avatar_pfin2n.jpg') {
+
 
     const result = await db.query(
       'INSERT INTO "user" (username, password, full_name, role_id, phone, email, avatar) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id, username, full_name, email, phone, status, created_at, role_id',
-      [username, passwordHash, full_name, roleId, phoneNumber, email, avatar]
+      [username, passwordHash, full_name, role_id, phoneNumber, email, avatar]
     );
 
     const created = result.rows[0];

@@ -12,15 +12,16 @@ const authController = {
         const rawFullName = typeof req.body.fullName === 'string' ? req.body.fullName.trim() : (typeof req.body.full_name === 'string' ? req.body.full_name.trim() : '');
         const rawPhone = typeof req.body.phoneNumber === 'string' ? req.body.phoneNumber.trim() : (typeof req.body.phone === 'string' ? req.body.phone.trim() : '');
         const rawEmail = typeof req.body.email === 'string' ? req.body.email.trim() : '';
-        const role = req.body.role || 'staff';
+        const rawRole = req.body.role_id || (await roles.getRoleByCode('staff')).id
+
 
         const userInput = {
             username: rawUsername.toLowerCase(),
             password: rawPassword,
             fullName: rawFullName,
-            role,
             phoneNumber: rawPhone,
-            email: rawEmail.toLowerCase()
+            email: rawEmail.toLowerCase(),
+            role_id: rawRole
         };
 
         // Basic validations
@@ -43,20 +44,6 @@ const authController = {
             const phoneRe = /^[+]?\d[\d\s.-]{4,}$/;
             if (!phoneRe.test(userInput.phoneNumber)) return res.status(400).json({ error: 'Invalid phone number format' });
         }
-
-        // Validate role against DB
-        let desiredRole = userInput.role || 'staff';
-        const foundRole = await roles.getRoleByName(desiredRole);
-        if (!foundRole) {
-            // fallback: try 'staff'
-            const fallback = await roles.getRoleByName('staff');
-            if (!fallback) return res.status(400).json({ error: 'Invalid role and no fallback role configured' });
-            desiredRole = fallback.name;
-        } else {
-            desiredRole = foundRole.name;
-        }
-        userInput.role = desiredRole;
-
         try{
             const result = await authService.register(userInput);
             if (typeof result === 'string') {

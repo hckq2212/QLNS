@@ -6,6 +6,11 @@ const roles = {
     const result = await db.query('SELECT id, name FROM "role" WHERE lower(name) = lower($1) LIMIT 1', [name]);
     return result.rows[0];
   },
+  async getRoleByCode(code) {
+    if (!code) return null;
+    const result = await db.query('SELECT id, name FROM "role" WHERE lower(code) = lower($1) LIMIT 1', [code]);
+    return result.rows[0];
+  },
 
   async getRoleById(id) {
     if (!id) return null;

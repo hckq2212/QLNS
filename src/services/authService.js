@@ -32,7 +32,7 @@ const authService = {
         }
         try {
             const hashedPassword = await bcrypt.hash(userInput.password, saltRounds);
-            const newUser = await users.createUser(userInput.username, hashedPassword, userInput.fullName, userInput.role, userInput.phoneNumber, userInput.email);
+            const newUser = await users.createUser(userInput.username, hashedPassword, userInput.fullName, userInput.role_id, userInput.phoneNumber, userInput.email);
             return newUser;
         } catch (err) {
             console.error('register error:', err);
