@@ -75,17 +75,7 @@ const projectController = {
             console.error('Lỗi khi get By Status', err)
         }
     },
-    assignJob: async (req, res) => {
-        try {
-            const projectId = req.params.id;
-            const { jobId, assignedType, assignedId, externalCost, overrideReason, saveToCatalog, deadline, start_date } = req.body || {};
-            const updated = await projectService.assignJob(projectId, jobId, assignedType, assignedId, externalCost, overrideReason,saveToCatalog, start_date, deadline);
-            return res.json(updated);
-        } catch (err) {
-            console.error('project assignJob error', err);
-            return res.status(400).json({ error: err.message || 'Bad request' });
-        }
-    },
+
 
     close: async (req, res) => {
         try {

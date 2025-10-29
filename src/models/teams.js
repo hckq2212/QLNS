@@ -14,6 +14,10 @@ const teams = {
             [name, description, lead_user_id]
         )
         return result.rows[0]
+    },
+    getMemberByTeamId: async (id) => {
+        const result = await db.query('SELECT * FROM team_member WHERE team_id = $1',[id])
+        return result.rows
     }
 }
 export default teams;

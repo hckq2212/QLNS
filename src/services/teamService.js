@@ -12,6 +12,10 @@ const teamService = {
     create: async(name, description, lead_user_id) => {
         const result = await teams.create(name, description, lead_user_id)
         return result
+    },
+    getMemberByTeamId: async(id) => {
+        const result = await teams.getMemberByTeamId(id);
+        return result
     }
 }
 export default teamService

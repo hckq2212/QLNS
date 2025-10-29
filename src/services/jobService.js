@@ -9,10 +9,9 @@ const jobService = {
         const result = await jobs.getById(jobId);
         return result;
     },
-    update: async (jobId, fields) => {
-        if (!jobId) throw new Error('jobId required');
-        const result = await jobs.update(jobId, fields);
-        return result;
+    update: async(id, payload) => {
+        const result = await jobs.update(id, payload);
+        return result
     },
     create: async(payload) => {
         const result = await jobs.create(payload);

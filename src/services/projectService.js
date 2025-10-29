@@ -79,20 +79,6 @@ const projectService = {
             );
             const items = csRes.rows || [];
 
-              if (items.length === 0) {
-                console.log(`ackProject: no contract_service rows for contract ${contractId}, creating a default job`);
-                const defaultName = `${project.name || 'Project'} - Initial job`;
-                const ins = await client.query(
-                    `INSERT INTO job
-                     (contract_id, project_id, name, base_cost, sale_price, status, created_by, created_at, updated_at)
-                     VALUES ($1,$2,$3,$4,$5,$6,$7, now(), now())
-                     RETURNING *`,
-                    [contractId, projectId, defaultName, 0, 0, 'not_assigned', userId]
-                );
-                await client.query('COMMIT');
-                return { project, jobs: [ins.rows[0]] };
-            }
-
             const createdJobs = [];
             for (const it of items) {
                 const qty = it.qty != null ? Number(it.qty) : 1;
@@ -103,8 +89,8 @@ const projectService = {
 
                     const ins = await client.query(
                         `INSERT INTO job
-                         (contract_id, project_id, service_id, service_job_id, name, base_cost, sale_price, created_by, created_at, updated_at)
-                         VALUES ($1,$2,$3,$4,$5,$6,$7,$8, now(), now())
+                         (contract_id, project_id, service_id, service_job_id, name, base_cost, sale_price, created_by, created_at, updated_at, status)
+                         VALUES ($1,$2,$3,$4,$5,$6,$7,$8, now(), now(), 'not_assigned')
                          RETURNING *`,
                         [contractId, projectId, it.service_id, it.service_job_id, jobName, baseCost, salePrice, userId]
                     );
@@ -122,130 +108,7 @@ const projectService = {
             client.release();
         }
     },
-    // assign a job inside a project (use job model assign + optional external cost override)
-    async assignJob(projectId, jobId, assignedType, assignedId, externalCost = null, overrideReason = null, saveToCatalog = false, start_date, deadline) {
-        if (!projectId) throw new Error('projectId required');
-        if (!jobId) throw new Error('jobId required');
-        if (!assignedType || (assignedType !== 'user' && assignedType !== 'partner')) throw new Error('assignedType must be "user" or "partner"');
-
-        const client = await db.connect();
-        try {
-            await client.query('BEGIN');
-
-            // lock job row
-            const jobRes = await client.query('SELECT * FROM job WHERE id = $1 FOR UPDATE', [jobId]);
-            const job = jobRes.rows[0];
-            if (!job) {
-                await client.query('ROLLBACK');
-                throw new Error('job not found');
-            }
-            if (String(job.project_id) !== String(projectId)) {
-                await client.query('ROLLBACK');
-                throw new Error('job does not belong to project');
-            }
-
-            // resolve external cost validation
-            let resolvedExternalCost = externalCost != null ? Number(externalCost) : null;
-            if (resolvedExternalCost != null) {
-                if (!Number.isFinite(resolvedExternalCost) || resolvedExternalCost < 0) {
-                    await client.query('ROLLBACK');
-                    throw new Error('externalCost must be a non-negative number');
-                }
-            }
-
-            // partner-specific logic: check partner catalog (partner_service_job table)
-            let appendOverrideNote = false;
-            let catalogEntry = null;
-            if (assignedType === 'partner') {
-                if (!job.service_job_id) {
-                    await client.query('ROLLBACK');
-                    throw new Error('job is missing service_job information for partner assignment');
-                }
-
-                const pe = await client.query(
-                    `SELECT COALESCE(
-                        (CASE WHEN column_name IS NOT NULL THEN (SELECT external_cost FROM partner_service_job WHERE partner_id = $1 AND service_job_id = $2 LIMIT 1) END),
-                        (SELECT base_cost FROM partner_service_job WHERE partner_id = $1 AND service_job_id = $2 LIMIT 1)
-                    ) AS catalog_cost`,
-                    [assignedId, job.service_job_id]
-                ).catch(() => ({ rows: [] }));
-
-                // fallback simpler query (handles schemas without external_cost)
-                if (!pe || !pe.rows || pe.rows.length === 0) {
-                    const pe2 = await client.query(
-                        'SELECT base_cost, (CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=$3 AND column_name=$4) THEN (SELECT external_cost FROM partner_service_job WHERE partner_id = $1 AND service_job_id = $2 LIMIT 1) ELSE NULL END) AS external_cost FROM partner_service_job WHERE partner_id = $1 AND service_job_id = $2 LIMIT 1',
-                        [assignedId, job.service_job_id, 'partner_service_job', 'external_cost']
-                    ).catch(() => ({ rows: [] }));
-                    if (pe2 && pe2.rows && pe2.rows[0]) {
-                        catalogEntry = { catalog_cost: (pe2.rows[0].external_cost != null ? Number(pe2.rows[0].external_cost) : (pe2.rows[0].base_cost != null ? Number(pe2.rows[0].base_cost) : null)) };
-                    }
-                } else {
-                    catalogEntry = { catalog_cost: pe.rows[0].catalog_cost != null ? Number(pe.rows[0].catalog_cost) : null };
-                }
-
-                const catalogCost = catalogEntry && catalogEntry.catalog_cost != null ? Number(catalogEntry.catalog_cost) : null;
-                if (resolvedExternalCost == null) {
-                    if (catalogCost == null) {
-                        await client.query('ROLLBACK');
-                        throw new Error('Catalog entry missing external/base cost, please provide externalCost');
-                    }
-                    resolvedExternalCost = catalogCost;
-                } else if (catalogCost == null || Math.abs(resolvedExternalCost - catalogCost) > 0.01) {
-                    appendOverrideNote = true;
-                    if (!overrideReason) {
-                        await client.query('ROLLBACK');
-                        throw new Error('overrideReason is required when overriding catalog external cost');
-                    }
-                } else {
-                    resolvedExternalCost = catalogCost;
-                }
-            }
-
-            // assignment: write into assigned_id + assigned_type (schema uses these columns)
-            await client.query(
-                'UPDATE job SET assigned_id = $1, assigned_type = $2,start_date = $3, deadline = $4, updated_at = now() WHERE id = $5',
-                [assignedId, assignedType,start_date, deadline, jobId]
-            );
-
-            // update external_cost and note if needed
-            if (resolvedExternalCost != null) {
-                const currentNote = job.description || job.note || '';
-                let newNote = currentNote;
-                if (appendOverrideNote && overrideReason) {
-                    const safeReason = String(overrideReason).slice(0, 1000);
-                    newNote = `${currentNote}\n[External cost override] ${safeReason}`;
-                } else if (overrideReason) {
-                    newNote = `${currentNote}\n[External cost note] ${String(overrideReason).slice(0,1000)}`;
-                }
-
-                await client.query(
-                    'UPDATE job SET external_cost = $1, description = $2, updated_at = now() WHERE id = $3',
-                    [resolvedExternalCost, newNote, jobId]
-                );
-
-                // optionally upsert catalog (use base_cost column if present)
-                if (saveToCatalog) {
-                    await client.query(
-                        `INSERT INTO partner_service_job (partner_id, service_job_id, base_cost, created_at)
-                         VALUES ($1,$2,$3, now())
-                         ON CONFLICT (partner_id, service_job_id) DO UPDATE SET base_cost = EXCLUDED.base_cost, note = COALESCE(partner_service_job.note, '' )`,
-                        [assignedId, job.service_job_id, resolvedExternalCost]
-                    ).catch(() => {/* ignore if schema differs */});
-                }
-            }
-
-            // return refreshed job
-            const refreshed = await client.query('SELECT * FROM job WHERE id = $1', [jobId]);
-            await client.query('COMMIT');
-            return refreshed.rows[0];
-        } catch (err) {
-            try { await client.query('ROLLBACK'); } catch (_) {}
-            console.error('assignJob error:', err && (err.stack || err.message) || err);
-            throw err;
-        } finally {
-            client.release();
-        }
-    },
+   
 
     async closeProject(projectId) {
         if (!projectId) throw new Error('projectId required');

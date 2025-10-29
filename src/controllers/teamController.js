@@ -31,6 +31,15 @@ const teamController = {
         }catch(err){
             console.error("Lỗi khi tạo team", err)
         }
+    },
+    getMemberByTeamId: async (req, res) => {
+        const id = req.query.id || req.params.id
+        try{
+            const result = await teamService.getMemberByTeamId(id);
+            return res.status(200).json(result)
+        }catch(err){
+            console.error('Lỗi khi lấy thông tin member: ', err)
+        }
     }
 }
 export default teamController
