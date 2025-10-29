@@ -81,6 +81,52 @@ const contractService = {
                 throw new Error('Failed to create contract (unexpected model return)');
             }
 
+            // create contract_service entries copied from opportunity_service
+            try {
+                const client = await db.connect();
+                try {
+                    await client.query('BEGIN');
+
+                    const osRes = await client.query(
+                        `SELECT os.service_id, os.service_job_id, os.quantity, os.proposed_price,
+                                s.base_cost AS service_base_cost,
+                                sj.base_cost AS sj_base_cost
+                         FROM opportunity_service os
+                         LEFT JOIN service s ON s.id = os.service_id
+                         LEFT JOIN service_job sj ON sj.id = os.service_job_id
+                         WHERE os.opportunity_id = $1`,
+                        [opportunityId]
+                    );
+
+                    const osRows = (osRes && osRes.rows) ? osRes.rows : [];
+                    for (const r of osRows) {
+                        const qty = r.quantity != null ? Number(r.quantity) : 1;
+                        const salePrice = r.proposed_price != null ? Number(r.proposed_price) : 0;
+                        const baseUnit = (r.sj_base_cost != null ? Number(r.sj_base_cost) : (r.service_base_cost != null ? Number(r.service_base_cost) : 0));
+                        const costPrice = baseUnit;
+
+                        await client.query(
+                            `INSERT INTO contract_service
+                             (contract_id, service_id, service_job_id, qty, sale_price, cost_price, created_at, updated_at)
+                             VALUES ($1,$2,$3,$4,$5,$6, now(), now())`,
+                            [createdRow.id, r.service_id || null, r.service_job_id || null, qty, salePrice, costPrice]
+                        );
+                    }
+
+                    await client.query('COMMIT');
+                } catch (e) {
+                    try { await client.query('ROLLBACK'); } catch (_) {}
+                    console.error('Failed to create contract_service rows, rolling back:', e);
+                    throw e;
+                } finally {
+                    client.release();
+                }
+            } catch (e) {
+                // non-fatal for contract creation, but surface error
+                console.error('Error while inserting contract_service rows:', e && (e.stack || e.message) || e);
+                throw e;
+            }
+
             // assign code atomically if model helper exists (preferred)
             if (typeof contracts.assignCodeIfMissing === 'function') {
                 // pass created_at if available so model can derive year/month

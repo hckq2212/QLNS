@@ -10,6 +10,7 @@ opportunityRoute.get('/' , opportunityController.getAllOpportunities);
 opportunityRoute.get('/:id/services', opportunityController.getService)
 // Get tất cả các cơ hội đang chờ duyệt
 opportunityRoute.get('/pending',  opportunityController.getAllPendingOpportunities);
+opportunityRoute.patch('/:id/quote', opportunityController.quote)
 
 // Get by creator
 opportunityRoute.get('/creator/:userId', opportunityController.getByCreator);

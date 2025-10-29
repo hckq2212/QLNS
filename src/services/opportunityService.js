@@ -94,7 +94,39 @@ const opportunityService = {
 
     getPendingOpportunities: async () => {
         return await opportunities.getPending();
+    },
+    quote: async (opportunityId, body, os) => {
+    try {
+        const osUpdated = [];
+
+        for (const o of os) {
+        const id = Number(o.opportunityService_id);
+        if (!Number.isFinite(id)) continue; // id không hợp lệ thì bỏ qua
+
+        // Chỉ lấy các field DB cho phép: proposed_price, quantity, note
+        const fields = {};
+        if (o.proposed_price != null) fields.proposed_price = Number(o.proposed_price);
+        if (o.quantity != null)      fields.quantity = Number(o.quantity);
+        if (o.note != null)          fields.note = String(o.note);
+
+        // Không có field hợp lệ để update -> bỏ qua
+        if (Object.keys(fields).length === 0) continue;
+
+        const osRes = await opportunityServices.update(id, fields); // <- (id, fields)
+        if (osRes) osUpdated.push(osRes); // update trả về RETURNING *; nếu null thì bỏ qua
+        }
+
+        const oRes = await opportunities.update(opportunityId, body);
+        if (!oRes) throw new Error('Lỗi khi update cơ hội');
+
+        return { osUpdated, oRes };
+    } catch (err) {
+        console.error('Lỗi khi thực hiện báo giá:', err);
+        throw err;
     }
+},
+
+
 }
 
 export default opportunityService;

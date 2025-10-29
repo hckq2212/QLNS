@@ -139,6 +139,41 @@ const opportunityController = {
             return res.status(500).json({ error: err.message || 'Internal server error' });
         }
     },
+quote: async (req, res) => {
+  try {
+    const opportunityId = req.params.id;
+    if (!opportunityId) {
+      return res.status(400).json({ error: "Missing opportunity id" });
+    }
+
+    // Xử lý các dạng body có thể có
+    let os = [];
+    if (Array.isArray(req.body)) {
+      os = req.body; // body là mảng service
+    } else if (Array.isArray(req.body.services)) {
+      os = req.body.services; // body có field services là mảng
+    } else if (req.body.opportunityService_id && req.body.proposed_price !== undefined) {
+      os = [req.body]; // body là 1 object đơn
+    }
+
+    if (!os.length) {
+      return res.status(400).json({ error: "Missing opportunity services to quote" });
+    }
+
+    const body = {
+      expected_price: req.body.expected_price,
+      status: "quoted",
+    };
+
+    const result = await opportunityService.quote(opportunityId, body, os);
+    return res.json(result);
+  } catch (err) {
+    console.error("Lỗi khi báo giá:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+
 };
 
 export default opportunityController;

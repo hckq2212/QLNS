@@ -26,7 +26,29 @@ const opportunityServices   = {
     async getOpportunityService(opportunityId) {
         const result = await db.query('SELECT * FROM opportunity_service WHERE opportunity_id = $1', [opportunityId]);
         return result.rows;
-    }
+    },
+    async update(id, fields = {}) {
+        const allowed = ['quantity', 'proposed_price', 'note'];
+        const setClauses = [];
+        const params = [];
+        let idx = 1;
+
+        for (const key of allowed) {
+            if (Object.prototype.hasOwnProperty.call(fields, key)) {
+                setClauses.push(`${key} = $${idx}`);
+                params.push(fields[key]);
+                idx++;
+            }
+        }
+
+        if (setClauses.length === 0) return null; // nothing to update
+
+        params.push(id);
+        const sql = `UPDATE opportunity_service SET ${setClauses.join(', ')} WHERE id = $${idx} RETURNING *`;
+        const result = await db.query(sql, params);
+        return result.rows[0];
+    },
+
 }
 
 export default opportunityServices;
