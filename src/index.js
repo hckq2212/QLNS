@@ -15,6 +15,7 @@ import auth from '../src/middleware/authMiddleware.js'
 import cors from 'cors'
 import serviceJobRoute from './routes/serviceJobRoute.js'
 import teamRoute from './routes/teamRoute.js'
+import meRoute from './routes/meRoute.js'
 
 
 const app = express()
@@ -37,6 +38,7 @@ app.use('/api/project',auth, projectRoute)
 app.use('/api/appendix',auth, contractAppendixRoute)
 app.use('/api/service-job',auth, serviceJobRoute)
 app.use('/api/team',auth, teamRoute)
+app.use('/api/me',auth, meRoute)
 
 
 app.get('/',(req, res) =>{

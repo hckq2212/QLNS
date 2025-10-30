@@ -4,6 +4,7 @@ import express from 'express'
 
 const jobRoute = express.Router();
 
+
 jobRoute.get('/', jobController.getAll);
 jobRoute.get('/project/:projectId', jobController.getByProject)
 jobRoute.patch('/:id/assign', jobController.assign)

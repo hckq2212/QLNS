@@ -1,18 +1,7 @@
 import jwt from 'jsonwebtoken'
 import users from '../models/users.js'
 
-/**
- * Enhanced authentication middleware:
- * - Verifies Bearer token (JWT)
- * - Loads user from DB and ensures account is active
- * - Optional: if JWT contains createdAt and user record has a revocation timestamp, deny revoked tokens
- * - Optional: if JWT contains `source`, compare with request's User-Agent header
- *
- * Notes:
- * - The project currently stores user status and refresh_token. If you want token revocation by timestamp
- *   (like `timeRevokeToken` in the example), add a column to the user table (e.g. `time_revoke_token timestamptz`) and
- *   populate it when revoking tokens; then this middleware will compare decoded.createdAt to that field.
- */
+
 async function checkToken(req, res, next) {
     try {
         const authHeader = req.headers['authorization'] || req.headers['Authorization'];
@@ -29,7 +18,7 @@ async function checkToken(req, res, next) {
         }
 
         // `decoded` is expected to contain an identifier for the user. authService sets `id`.
-        const userId = decoded.id || decoded._id || decoded.sub;
+        const userId = decoded.id || decoded._id ;
         if (!userId) {
             return res.status(401).json({ status: 401, error: 'Unauthorized: Token missing user id' });
         }

@@ -21,6 +21,7 @@ const jobService = {
         const result = await jobs.getByProject(id);
         return result;
     },
+
     assign: async(id, body) => {
         const result = await jobs.update(id, body);
         if(!result) throw new Error('Lỗi khi thực hiện assign job')

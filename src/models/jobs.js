@@ -1,5 +1,4 @@
 import db from '../config/db.js'
-import users from './users.js';
 
 const jobs = {
     getAll: async () => {
@@ -37,7 +36,23 @@ const jobs = {
         const result = await db.query(sql, params);
         return result.rows[0];
     },
+    getByProject: async(id) => {
+        const result = await db.query('SELECT * FROM job WHERE project_id = $1',
+            [id]
+        )
+        return result.rows
+    },
+    getMyJob: async (id) => {
+        const result = await db.query(
+            `
+            SELECT * FROM job
+            WHERE assigned_id = $1 
+            AND assigned_type = 'user'
+            `,
+            [id]
+        )
+        return result.rows;
+    }
 }
-
 
 export default jobs;

@@ -78,7 +78,8 @@ const jobController = {
             console.error('Lỗi khi assign job', err);
             return res.status(500).json({ error: err.message || 'Internal server error' });
         }
-        }
+        },
+
 
 
 }
