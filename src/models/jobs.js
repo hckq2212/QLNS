@@ -11,7 +11,16 @@ const jobs = {
         return result.rows[0];
     },
     update: async (id, fields = {}) => {
-        const allowed = [assigned_type, assigned_id, description, external_cost, status, start_date, end_date, deadline];
+          const allowed = [
+            'assigned_type',
+            'assigned_id',
+            'description',
+            'external_cost',
+            'status',
+            'start_date',
+            'end_date',
+            'deadline'
+        ];
         const setClauses = [];
         const params = [];
         let idx = 1;

@@ -50,6 +50,36 @@ const jobController = {
 
         }
     },
+   assign: async (req, res) => {
+        try {
+            const id = req.params.id;
+            const body = {
+                assigned_type: req.body.assigned_type || 'user',
+                assigned_id: req.body.assigned_id,
+                description: req.body.description ?? null,
+                status: 'assigned',
+                start_date: req.body.start_date,
+                deadline: req.body.deadline
+            };
+
+            if (!body.assigned_id) {
+                return res.status(400).json({ error: 'Thiếu assigned_id' });
+            }
+            if (!body.start_date) {
+                return res.status(400).json({ error: 'Thiếu ngày bắt đầu' });
+            }
+            if (!body.deadline) {
+                return res.status(400).json({ error: 'Thiếu deadline' });
+            }
+
+            const result = await jobService.assign(id, body);
+            return res.status(200).json(result);
+        } catch (err) {
+            console.error('Lỗi khi assign job', err);
+            return res.status(500).json({ error: err.message || 'Internal server error' });
+        }
+        }
+
 
 }
 
