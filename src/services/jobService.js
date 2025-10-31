@@ -26,7 +26,11 @@ const jobService = {
         const result = await jobs.update(id, body);
         if(!result) throw new Error('Lỗi khi thực hiện assign job')
         return result
-    }
+    },
+    getMyJob: async(id) => {
+        const result = await jobs.getMyJob(id);
+        return result;
+    },
 
 }
 
