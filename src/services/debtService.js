@@ -21,6 +21,7 @@ const debtService = {
             try{
                 const status = 'waiting_hr_confirm' 
                 const statusRes = await contracts.updateStatus(contractId,status)
+            if (!statusRes) throw new Error('Lỗi khi cập nhật trạng thái cho hợp đòng')
             }catch(err){
                 console.error("Lỗi khi update status cho contract", err)
             }

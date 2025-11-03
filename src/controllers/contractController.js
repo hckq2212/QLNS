@@ -94,81 +94,77 @@ const contractController = {
     },
 
 uploadProposalContract: async (req, res) => {
-  const id = req.params.id;
-  if (!req.file) return res.status(400).json({ error: 'No file uploaded (field name: proposalContract)' });
-
-  console.log('uploadProposalContract - req.file:', {
-    originalname: req.file.originalname,
-    mimetype: req.file.mimetype,
-    size: req.file.size
-  });
-
-  const allowed = [
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-  ];
-  if (!allowed.includes(req.file.mimetype || '')) {
-    return res.status(400).json({ error: 'Only PDF/DOC/DOCX allowed', mime: req.file.mimetype });
-  }
-
   try {
-    const streamUpload = (buffer, opts = {}) =>
+    const { id: contractId } = req.params;
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded (field name: proposalContract)' });
+    }
+
+    const orig = req.file.originalname || 'file';
+    const ext  = (orig.split('.').pop() || '').toLowerCase();
+
+    const allowed = new Set([
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ]);
+    const mimetypeOk = allowed.has(req.file.mimetype || '');
+    const extOk = ['pdf','doc','docx'].includes(ext);
+    if (!mimetypeOk && !extOk) {
+      return res.status(400).json({ error: 'Only PDF/DOC/DOCX allowed', mime: req.file.mimetype });
+    }
+
+    const safeBase   = orig.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_\-]/g, '_');
+    const folderPath = `QLNS/proposal_contracts/${contractId}`;
+    const publicName = `${Date.now()}_${safeBase}`;
+
+    const streamUpload = (buffer, opts={}) =>
       new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          opts,
-          (error, result) => (error ? reject(error) : resolve(result))
+        const stream = cloudinary.uploader.upload_stream(opts, (error, result) =>
+          error ? reject(error) : resolve(result)
         );
         stream.end(buffer);
       });
 
-    const orig = req.file.originalname || 'file';
-    const ext  = (orig.split('.').pop() || '').toLowerCase(); // pdf|doc|docx
-    const base = orig.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_\-]/g, '_');
-
-    const folder = 'QLNS/proposal_contracts';
-
-    const uploadOpts = {
+    const uploadResult = await streamUpload(req.file.buffer, {
       resource_type: 'raw',
       type: 'upload',
-      folder,
-      public_id: base,          // KHÔNG có .ext
-      format: ext,              // Cloudinary sinh secure_url có .ext
+      folder: folderPath,
+      public_id: publicName,
+      format: ext || undefined,
       use_filename: false,
       unique_filename: false,
-      overwrite: true,
+      overwrite: false,
       context: { original_filename: orig }
-    };
+    });
 
-    const uploadResult = await streamUpload(req.file.buffer, uploadOpts);
+    const viewUrl = uploadResult.secure_url;
 
-    // Dùng URL do Cloudinary trả (ổn định)
-    const url = uploadResult.secure_url;
-
-    // const saved = await contractService.uploadProposalContract(url, id);
-
-    const downloadUrl = generateDownloadUrl(uploadResult.public_id, {
+    // dùng public_id cloudinary vừa trả
+    const downloadUrl = cloudinary.url(uploadResult.public_id, {
       resource_type: 'raw',
       type: 'upload',
-      attachment: true,
-      target_filename: req.file.originalname
-    })
+      attachment: orig,
+      format: ext || undefined,
+      secure: true
+    });
 
-    await contractService.uploadProposalContract(downloadUrl, req.params.id)
+    await contractService.uploadProposalContract(downloadUrl, contractId);
 
     return res.status(200).json({
       message: 'Upload thành công',
-      url,                                 // URL dùng trong hệ thống
-      cloudinary_url: uploadResult.secure_url,
-      resource_type_saved: uploadResult.resource_type, // 'raw'
-      public_id: uploadResult.public_id,   // ví dụ: 'QLNS/contracts/ten_file'
-      folder,
+      viewUrl,
+      downloadUrl,
+      public_id: uploadResult.public_id,
+      bytes: uploadResult.bytes,
+      resource_type: uploadResult.resource_type,
     });
   } catch (err) {
-    console.error('uploadProposalContract error:', err && (err.stack || err.message) || err);
-    return res.status(500).json({ error: err.message || 'Upload failed' });
+    console.error('uploadProposalContract error:', err?.stack || err?.message || err);
+    return res.status(500).json({ error: err?.message || 'Upload failed' });
   }
 },
+
 
 sign: async (req, res) => {
   const id = req.params.id;

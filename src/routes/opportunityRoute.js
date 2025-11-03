@@ -12,7 +12,7 @@ opportunityRoute.get('/:id/services', opportunityController.getService)
 opportunityRoute.get('/pending',  opportunityController.getAllPendingOpportunities);
 opportunityRoute.patch('/:id/quote', opportunityController.quote)
 
-// Get by creator
+// Get by creator   
 opportunityRoute.get('/creator/:userId', opportunityController.getByCreator);
     
 // Get single
