@@ -13,6 +13,14 @@ const contracts = {
         const result = await db.query("SELECT * FROM contract WHERE status = 'waiting_hr_confirm'")
         return result.rows;
     },
+    async getByIds(ids = []) {
+        if (!Array.isArray(ids) || ids.length === 0) return [];
+        const result = await db.query(
+            'SELECT * FROM contract WHERE id = ANY($1::int[]) ORDER BY array_position($1::int[], id)',
+            [ids]
+        );
+        return result.rows;
+    },
     async uploadProposalContract (url, id) {
         const result = await db.query(
             `UPDATE contract

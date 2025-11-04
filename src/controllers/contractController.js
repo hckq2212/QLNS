@@ -3,15 +3,33 @@ import cloudinary from "../config/cloudinary.js";
 import generateDownloadUrl from "../config/cloudinaryDownload.js";
 
 const contractController = {
-    getAll: async (req, res) => {
-        try {
-            const result = await contractService.getAll();
-            return res.json(result);
-        }catch(err){
-            console.error('getAll contracts error:', err);
-            return res.status(500).json({ error: 'Internal server error' });
-        }
-    },
+getAll: async (req, res) => {
+  try {
+    const idsParam = req.query.ids;
+    if (idsParam) {
+      // parse ids safe
+      const raw = String(idsParam).split(',').map(s => s.trim()).filter(Boolean);
+      // optional: limit count
+      const MAX = 200;
+      if (raw.length > MAX) return res.status(400).json({ error: `Too many ids (max ${MAX})` });
+
+      // convert to numbers when appropriate, else keep strings
+      const ids = raw.map((v) => ( /^\d+$/.test(v) ? Number(v) : v ));
+
+      // delegate to a service method that fetches many contracts in one query
+      // implement contractService.getByIds(ids) to return an array of contract objects
+      const contracts = await contractService.getByIds(ids);
+      return res.json(contracts); // array or { items: [...] } both ok (client handles)
+    }
+
+    // no ids param -> return full list as before
+    const result = await contractService.getAll();
+    return res.json(result);
+  } catch (err) {
+    console.error('getAll contracts error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+},
     getAllPending: async (req, res) => {
         try {
             const result = await contractService.getAllPending();
@@ -140,14 +158,16 @@ uploadProposalContract: async (req, res) => {
 
     const viewUrl = uploadResult.secure_url;
 
-    // dùng public_id cloudinary vừa trả
-    const downloadUrl = cloudinary.url(uploadResult.public_id, {
-      resource_type: 'raw',
-      type: 'upload',
-      attachment: orig,
-      format: ext || undefined,
-      secure: true
-    });
+    const downloadUrl = cloudinary.utils.private_download_url(
+      uploadResult.public_id,
+      ext, 
+      {
+        resource_type: 'raw',
+        type: 'upload',
+        attachment: orig,
+      }
+    );
+
 
     await contractService.uploadProposalContract(downloadUrl, contractId);
 

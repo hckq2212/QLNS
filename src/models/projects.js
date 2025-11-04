@@ -15,7 +15,7 @@ const projects = {
         return result.rows;
     },
 
-    async create({ contract_id = null, name = null, description = null, start_date = null, end_date = null, status = 'planned', created_by = null } = {}) {
+    async create({ contract_id = null, name = null, description = null, start_date = null, end_date = null, status = 'not_assigned', created_by = null } = {}) {
         const result = await db.query(
             'INSERT INTO project (contract_id, name, description, start_date, end_date, status, created_by, created_at) VALUES ($1,$2,$3,$4,$5,$6,$7, now()) RETURNING *',
             [contract_id, name, description, start_date, end_date, status, created_by]
@@ -56,7 +56,8 @@ const projects = {
     async assignTeam(id, teamId){
         const result = await db.query(
             `UPDATE project
-             SET team_id = $1
+             SET team_id = $1,
+             status = 'assigned'
              WHERE id = $2
              RETURNING *
             `,

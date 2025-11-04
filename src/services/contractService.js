@@ -17,6 +17,11 @@ const contractService = {
         const result = await contracts.getById(contractId);
         return result;
     },
+    getByIds: async (ids) => {
+        const result = await contracts.getByIds(ids);
+        return result;
+    },
+
     getServices: async(contractId) => {
         if (!contractId) throw new Error('contractId is required');
         const rows = await contracts.getServices(contractId);

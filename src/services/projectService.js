@@ -51,7 +51,7 @@ const projectService = {
                      updated_at = now()
                  WHERE id = $2
                  RETURNING *`,
-                ['not_assigned', projectId]
+                ['in_progress', projectId]
             );
             const project = upd.rows[0];
             if (!project) {

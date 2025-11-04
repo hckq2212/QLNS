@@ -10,18 +10,19 @@ import debtRoute from './routes/debtRoute.js'
 import serviceRoute from './routes/serviceRoute.js'
 import projectRoute from './routes/projectRoute.js'
 import contractAppendixRoute from './routes/contractAppendixRoute.js'
-import debtPaymentController from './controllers/debtPaymentController.js'
 import auth from '../src/middleware/authMiddleware.js'
 import cors from 'cors'
 import serviceJobRoute from './routes/serviceJobRoute.js'
 import teamRoute from './routes/teamRoute.js'
 import meRoute from './routes/meRoute.js'
+import cookieParser from 'cookie-parser';
 
 
 const app = express()
 const port = process.env.PORT || 3000
 app.use(cors())
 app.use(express.json())
+app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
 
