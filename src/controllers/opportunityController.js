@@ -12,9 +12,10 @@ const opportunityController = {
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
-    getAllPendingOpportunities: async (req, res) => {
+    getByStatus: async (req, res) => {
+        const status = req.params.status || req.query.status
         try {
-            const result = await opportunityService.getAllPendingOpportunities();
+            const result = await opportunityService.getByStatus(status);
             return res.json(result);
         } catch (err) {
             console.error('getAllOpportunities error:', err);
@@ -74,10 +75,10 @@ const opportunityController = {
     approve: async (req, res) => {
         try {
             const id = req.params.id;
-            const approverId = req.user && req.user.id;
+            console.log(id)
+            const approverId =  req.user.id;
             if (!approverId) return res.status(401).json({ error: 'Unauthorized' });
-            const paymentPlan = req.body || {};
-            const result = await opportunityService.approveOpportunity(id, approverId, paymentPlan);
+            const result = await opportunityService.approveOpportunity(id, approverId);
             return res.json(result);
         } catch (err) {
             console.error('Lỗi khi duyệt cơ hội:', err);

@@ -27,8 +27,7 @@ const debtService = {
             }
         }
         return result;
-    }
-    ,
+    },
     payPartial: async (debtId, payAmount) => {
         return await debts.payPartial(debtId, payAmount);
     },

@@ -59,7 +59,7 @@ const debtController = {
                 due_date: req.body.due_date || null,
                 title: req.body.title || null
             }
-            const contractId = req.params.contract_id || req.query.contract_id
+            const contractId = req.params.contractId || req.query.contractId
             const result = await debtService.create(contractId, body.amount, body.due_date, body.title);
             return result
         }catch(err){

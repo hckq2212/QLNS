@@ -5,8 +5,8 @@ const opportunities = {
         const result = await db.query('SELECT * FROM opportunity ORDER BY created_at DESC');
         return result.rows;
     },
-    async getAllPending() {
-        const result = await db.query("SELECT * FROM opportunity WHERE status = 'waiting_bod_approval'");
+    async getByStatus(status) {
+        const result = await db.query("SELECT * FROM opportunity WHERE status = $1", [status]);
         return result.rows;
     },
     async getById(id, forUpdate = false) {

@@ -115,7 +115,7 @@ uploadProposalContract: async (req, res) => {
     }
 
     const safeBase   = orig.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_\-]/g, '_');
-    const folderPath = `QLNS/proposal_contracts/${contractId}`;
+    const folderPath = `QLNS/proposal_contracts`;
     const publicName = `${Date.now()}_${safeBase}`;
 
     const streamUpload = (buffer, opts={}) =>

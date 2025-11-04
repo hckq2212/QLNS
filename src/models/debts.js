@@ -20,13 +20,13 @@ const debts = {
         return result.rows[0];
     }
     ,
-    async create(contractId, amount, dueDate, status = 'pending', title) {
+    async create(contractId, amount, dueDate,  title) {
         const amt = Number(amount);
         if (!Number.isFinite(amt) || amt <= 0) throw new Error('amount must be positive');
         try {
             const result = await db.query(
-                'INSERT INTO debt (contract_id, amount, due_date, status, title) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-                [contractId, amt, dueDate, status, title]
+                `INSERT INTO debt (contract_id, amount, due_date, status, title) VALUES ($1, $2, $3,'pending', $4 ) RETURNING *`,
+                [contractId, amt, dueDate, title]
             );
             return result.rows[0];
         } catch (err) {
