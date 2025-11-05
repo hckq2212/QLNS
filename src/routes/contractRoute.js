@@ -16,7 +16,8 @@ contractRoute.post('/opportunity/:opportunityId', contractController.createFromO
 contractRoute.get('/:status', contractController.getByStatus);
 contractRoute.get('/:id/services', contractController.getServices);
 contractRoute.get('/:id', contractController.getById);
-
+contractRoute.get('/:id/proposal-contract', contractController.getProposalContractUrl)
+contractRoute.get('/:id/signed-contract', contractController.getSignedContractUrl)
 contractRoute.patch('/:id/hr-confirm', contractController.hrConfirm);
 contractRoute.patch('/:id/upload-contract', upload.single('proposalContract'), contractController.uploadProposalContract);
 contractRoute.patch('/:id', contractController.update)

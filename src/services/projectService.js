@@ -1,7 +1,5 @@
 import projects from '../models/projects.js'
-import jobsModel from '../models/jobs.js'
 import db from '../config/db.js'
-import partnerServiceJobs from '../models/partnerServiceJobs.js'
 
 const projectService = {
     async list() {

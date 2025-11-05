@@ -21,6 +21,16 @@ const contractService = {
         const result = await contracts.getByIds(ids);
         return result;
     },
+    getProposalContractPublicId: async(id) => {
+        const con = await contracts.getById(id);
+        const result = con.proposal_file_url
+        return result;
+    },
+    getSignedContractPublicId: async(id) => {
+        const con = await contracts.getById(id);
+        const result = con.signed_file_url
+        return result;
+    },
 
     getServices: async(contractId) => {
         if (!contractId) throw new Error('contractId is required');
