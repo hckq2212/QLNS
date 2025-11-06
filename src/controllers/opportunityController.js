@@ -39,6 +39,7 @@ const opportunityController = {
         try {
             const payload = req.body || {};
             if (req.user && req.user.id) payload.created_by = req.user.id;
+            console.log(payload)
             const created = await opportunityService.createOpportunity(payload);
             return res.status(201).json(created);
         } catch (err) {

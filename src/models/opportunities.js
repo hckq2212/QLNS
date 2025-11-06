@@ -18,18 +18,19 @@ const opportunities = {
         return result.rows[0];
     },
 
-    async create({ customer_id = null, customer_temp = null, expected_price = null, description = null, created_by = null, status = 'waiting_bod_approval' }) {
+    async create({expected_revenue, expected_budget, success_rate, expected_end_date, priority, name, region, expected_price = null, description = null, created_by = null, status = 'waiting_bod_approval' }) {
         try {
             const result = await db.query(
-                `INSERT INTO opportunity (customer_id, customer_temp, expected_price, description, created_by, status)
-                 VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-                [customer_id, customer_temp, expected_price, description, created_by, status]
+                `INSERT INTO opportunity (expected_revenue, expected_budget, success_rate, expected_end_date, priority, name, region, expected_price, description, created_by, status)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+                [expected_revenue, expected_budget, success_rate, expected_end_date, priority, name, region, expected_price, description, created_by, status]
             );
             return result.rows[0];
         } catch (err) {
             throw err;
         }
     },
+
 
     async update(id, fields = {}) {
         const allowed = ['customer_id', 'customer_temp', 'expected_price', 'description', 'status', 'approved_by'];
