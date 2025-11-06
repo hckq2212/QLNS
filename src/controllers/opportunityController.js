@@ -35,18 +35,26 @@ const opportunityController = {
         }
     },
 
-    create: async (req, res) => {
-        try {
-            const payload = req.body || {};
-            if (req.user && req.user.id) payload.created_by = req.user.id;
-            console.log(payload)
+create: async (req, res) => {
+    try {
+        const payload = req.body || {};
+        if (req.user && req.user.id) payload.created_by = req.user.id;
+
+        if (req.files && req.files.length > 0) {
+            // If files are uploaded, process them
+            const created = await opportunityService.createOpportunity(payload, req.files);
+            return res.status(201).json(created);
+        } else {
+            // Handle the case when no files are uploaded
             const created = await opportunityService.createOpportunity(payload);
             return res.status(201).json(created);
-        } catch (err) {
-            console.error('create error:', err);
-            return res.status(400).json({ error: err.message || 'Bad request' });
         }
-    },
+    } catch (err) {
+        console.error('create error:', err);
+        return res.status(400).json({ error: err.message || 'Bad request' });
+    }
+},
+
 
     update: async (req, res) => {
         try {

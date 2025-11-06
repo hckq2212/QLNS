@@ -1,9 +1,7 @@
 import opportunities from '../models/opportunities.js'
 import db from '../config/db.js'
 import opportunityServices from '../models/opportunityServices.js'
-import customers from '../models/customers.js'
-import projects from '../models/projects.js'
-import contracts from '../models/contracts.js'
+import cloudinary from '../config/cloudinary.js'
 
 
 
@@ -19,38 +17,101 @@ const opportunityService = {
         return await opportunities.getById(id);
     },
 
-    createOpportunity: async (payload) => {
-        if (!payload) throw new Error('Thiếu thông tin để tạo cơ hội');
+createOpportunity: async (payload, files = []) => {
+    if (!payload) throw new Error('Thiếu thông tin để tạo cơ hội');
 
-        const services = payload.services;
-        if (!services || !services.length) {
-            throw new Error('Chưa chọn dịch vụ');
+// normalize services coming from payload (works for JSON body or FormData where services is JSON string)
+let services = payload.services;
+
+// If services is present as a JSON string (FormData), parse it
+if (typeof services === 'string') {
+  try {
+    services = JSON.parse(services);
+  } catch (err) {
+    throw new Error('Invalid services JSON');
+  }
+}
+
+// Ensure services is an array
+if (!Array.isArray(services) || services.length === 0) {
+  throw new Error('Chưa chọn dịch vụ');
+}
+
+// Normalize each service object
+services = services.map((s, i) => {
+  const service_id = Number(s.service_id);
+  // parseInt then ensure >=1, fallback to 1
+  const q = Number.isFinite(Number(s.quantity)) ? parseInt(s.quantity, 10) : NaN;
+  const quantity = Number.isInteger(q) && q > 0 ? q : 1;
+  return {
+    service_id,
+    quantity,
+    note: s.note || null,
+    // keep other fields if you need them
+  };
+});
+
+    try {
+        // 1️ Tạo cơ hội 
+        const opportunityCreateResult = await opportunities.create(payload);
+        if (!opportunityCreateResult) {
+            throw new Error("Không thể tạo cơ hội");
         }
 
-        try {
-            // 1️ Tạo cơ hội 
-            const opportunityCreateResult = await opportunities.create(payload);
-            if (!opportunityCreateResult) {
-                throw new Error("Không thể tạo cơ hội");
+        const opportunity_id = opportunityCreateResult.id;
+
+        // 2️ Upload files to Cloudinary and prepare the JSON for storing in the database
+        const attachments = [];
+        for (const file of files) {
+            if (file && file.buffer) {
+                const uploadResult = await new Promise((resolve, reject) => {
+                    cloudinary.uploader.upload_stream(
+                        { 
+                            folder: 'QLNS/attachments',
+                            resource_type: 'auto', // Automatically detect file type
+                            public_id: `opportunity_${opportunity_id}_${file.originalname.replace(/\s+/g, '_')}`,
+                        },
+                        (error, result) => {
+                            if (error) reject(error);
+                            resolve(result);
+                        }
+                    ).end(file.buffer);
+                });
+
+                // Add file info (name and URL) to the attachments array
+                attachments.push({
+                    name: file.originalname,
+                    url: uploadResult.secure_url,
+                    type: file.mimetype // File MIME type
+                });
             }
-
-            const opportunity_id = opportunityCreateResult.id;
-
-            // 2️ Tạo các dòng opportunity_service kèm opportunity_id
-            const oppServiceCreateResult = await opportunityServices.createMany(
-                opportunity_id,
-                services
-            );
-
-            return {
-                opportunity: opportunityCreateResult,
-                services: oppServiceCreateResult
-            };
-        } catch (err) {
-            console.error('Lỗi khi tạo cơ hội:', err);
-            throw err;
         }
-    },
+
+        // 3️ Save the JSON array in the opportunity table
+        if (attachments.length) {
+            await db.query(
+                `UPDATE opportunity SET attachments = $1 WHERE id = $2`,
+                [JSON.stringify(attachments), opportunity_id] // Convert the array to JSON string
+            );
+        }
+
+        // 4️ Tạo các dòng opportunity_service kèm opportunity_id
+        const oppServiceCreateResult = await opportunityServices.createMany(
+            opportunity_id,
+            services
+        );
+
+        return {
+            opportunity: opportunityCreateResult,
+            services: oppServiceCreateResult,
+            attachments: attachments // Return the attachment details
+        };
+    } catch (err) {
+        console.error('Lỗi khi tạo cơ hội:', err);
+        throw err;
+    }
+},
+
     updateOpportunity: async (id, fields) => {
         if (!id) throw new Error('id required');
         return await opportunities.update(id, fields);

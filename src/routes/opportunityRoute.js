@@ -1,9 +1,10 @@
 import opportunityController from '../controllers/opportunityController.js'
 import express from 'express'
-import checkToken from '../middleware/authMiddleware.js'
-import requireRole from '../middleware/roleMiddleware.js'
+import multer from 'multer';
 
 const opportunityRoute = express.Router();
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } }); 
 
 // List all - only allowed for role 'sale'
 opportunityRoute.get('/' , opportunityController.getAllOpportunities);
@@ -18,7 +19,7 @@ opportunityRoute.get('/creator/:userId', opportunityController.getByCreator);
 // Get single
 opportunityRoute.get('/:id',  opportunityController.getById);
 // Create
-opportunityRoute.post('/',  opportunityController.create);
+opportunityRoute.post('/', upload.array('attachments', 5), opportunityController.create);
 
 // Update
 opportunityRoute.patch('/:id', opportunityController.update);
