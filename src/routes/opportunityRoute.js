@@ -7,10 +7,11 @@ const opportunityRoute = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } }); 
 
 // List all - only allowed for role 'sale'
+opportunityRoute.get('/me' , opportunityController.getMyOpportunities);
 opportunityRoute.get('/' , opportunityController.getAllOpportunities);
 opportunityRoute.get('/:id/services', opportunityController.getService)
 // Get tất cả các cơ hội đang chờ duyệt
-opportunityRoute.get('/:status',  opportunityController.getByStatus);
+opportunityRoute.get('/status/:status',  opportunityController.getByStatus);
 opportunityRoute.patch('/:id/quote', opportunityController.quote)
 
 // Get by creator   

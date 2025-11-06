@@ -181,6 +181,16 @@ quote: async (req, res) => {
     console.error("Lỗi khi báo giá:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
+},
+getMyOpportunities: async (req, res) =>{
+    try{
+        const id = req.user.id;
+        if(!id) return res.status(404).send('Thiếu id người gửi')
+        const result = await opportunityService.getOpportunitiesByCreator(id)
+        return res.json(result)
+    }catch(err){
+        console.error(err)
+    }
 }
 
 
