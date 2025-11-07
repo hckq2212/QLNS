@@ -3,4 +3,6 @@ import meController from '../controllers/meController.js';
 
 const meRoute = express.Router();
 
+meRoute.get('/role', meController.getMyRole)
+
 export default meRoute

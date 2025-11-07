@@ -14,8 +14,21 @@ const roles = {
 
   async getRoleById(id) {
     if (!id) return null;
-    const result = await db.query('SELECT id, name FROM "role" WHERE id = $1 LIMIT 1', [id]);
+    const result = await db.query('SELECT id, code FROM "role" WHERE id = $1 LIMIT 1', [id]);
     return result.rows[0];
+  },
+  async getMyRole(userId) {
+    if (!userId) return null;
+    const result = await db.query(
+      `SELECT r.code
+       FROM "user" u
+       JOIN "role" r ON u.role_id = r.id
+       WHERE u.id = $1
+       LIMIT 1`,
+      [userId]
+    );
+    // trả về chuỗi code hoặc null nếu không tìm thấy
+    return result.rows[0] ? result.rows[0].code : null;
   },
 
   async getAll() {

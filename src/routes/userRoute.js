@@ -5,10 +5,8 @@ import userController from '../controllers/userController.js'
 const userRoute = express.Router()
 
 userRoute.get('/me', userController.getPersonalInfo)
-// List users (admin only)
 userRoute.get('/', userController.getAllUser)
 
-// Get single user (admin or the user themselves)
 userRoute.get('/:id', userController.getUserById)
 userRoute.patch('/:id',  userController.update)
 
