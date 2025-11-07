@@ -9,28 +9,35 @@ const customers = {
         const result = await db.query('SELECT * FROM customer WHERE id = $1',[id]);
         return result.rows[0]
     },
-    async create(customerOrName, customerPhone = null, customerEmail = null, customerCompany = null, note = null){
-        // Accept either an object { name, phone, email, company, note } or individual params
-        let name, phone, email, company, n;
-        if (customerOrName && typeof customerOrName === 'object') {
-            name = customerOrName.name || null;
-            phone = customerOrName.phone || null;
-            email = customerOrName.email || null;
-            company = customerOrName.company || null;
-            n = customerOrName.note || null;
-        } else {
-            name = customerOrName;
-            phone = customerPhone;
-            email = customerEmail;
-            company = customerCompany;
-            n = note;
-        }
-
-        const result = await db.query(
-            'INSERT INTO customer(name, phone, email, company, note) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [name, phone, email, company, n]
+      async create({ name = null, phone = null, email = null, company = null, address = null, note = null, identity_code = null, status = 'potential' } = {}) {
+        const res = await db.query(
+            `INSERT INTO customer (name, phone, email, company, address, note, identity_code, status)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+            [name, phone, email, company, address, note, identity_code, status]
         );
-        return result.rows[0];
+        return res.rows[0];
+    },
+    async update(id, fields = {}) {
+        const allowed = ['name', 'phone', 'email', 'company', 'address', 'note', 'identity_code', 'status'];
+        const set = [];
+        const params = [];
+        let idx = 1;
+        for (const k of allowed) {
+            if (Object.prototype.hasOwnProperty.call(fields, k)) {
+                set.push(`${k} = $${idx}`);
+                params.push(fields[k]);
+                idx++;
+            }
+        }
+        if (set.length === 0) return null;
+        params.push(id);
+        const sql = `UPDATE customer SET ${set.join(', ')}, updated_at = now() WHERE id = $${idx} RETURNING *`;
+        const res = await db.query(sql, params);
+        return res.rows[0];
+    },
+    async remove(id) {
+        const res = await db.query('DELETE FROM customer WHERE id = $1 RETURNING *', [id]);
+        return res.rows[0];
     }
 }
 

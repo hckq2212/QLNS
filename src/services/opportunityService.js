@@ -67,7 +67,7 @@ services = services.map((s, i) => {
                 const uploadResult = await new Promise((resolve, reject) => {
                     cloudinary.uploader.upload_stream(
                         { 
-                            folder: 'QLNS/attachments',
+                            folder: `QLNS/attachments/${opportunity_id}`,
                             resource_type: 'auto', // Automatically detect file type
                             public_id: `opportunity_${opportunity_id}_${file.originalname.replace(/\s+/g, '_')}`,
                         },

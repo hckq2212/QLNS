@@ -40,6 +40,7 @@ create: async (req, res) => {
         const payload = req.body || {};
         if (req.user && req.user.id) payload.created_by = req.user.id;
 
+        console.log(payload)
         if (req.files && req.files.length > 0) {
             // If files are uploaded, process them
             const created = await opportunityService.createOpportunity(payload, req.files);
