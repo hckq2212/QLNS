@@ -61,7 +61,7 @@ const opportunities = {
 
     async approve(id, approverId) {
         const result = await db.query(
-            "UPDATE opportunity SET status = 'approved', approved_by = $1, updated_at = now() WHERE id = $2 AND status = 'waiting_bod_approval' RETURNING *",
+            "UPDATE opportunity SET status = 'approved', approved_by = $1, updated_at = now(), bod_approved = true WHERE id = $2 AND status = 'waiting_bod_approval' RETURNING *",
             [approverId, id]
         );
         return result.rows[0];
@@ -69,7 +69,7 @@ const opportunities = {
     async reject(id, rejectorId) {
         // Only reject if opportunity currently pending
         const result = await db.query(
-            "UPDATE opportunity SET status = 'rejected', approved_by = $1, updated_at = now() WHERE id = $2 AND status = 'waiting_bod_approval' RETURNING *",
+            "UPDATE opportunity SET status = 'rejected', approved_by = $1, updated_at = now(), bod_approved = true WHERE id = $2 AND status = 'waiting_bod_approval' RETURNING *",
             [rejectorId, id]
         );
         return result.rows[0];

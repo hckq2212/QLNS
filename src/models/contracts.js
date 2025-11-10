@@ -43,18 +43,27 @@ const contracts = {
         const res = await db.query(sql, params);
         return res.rows;
     },
-    async create(opportunity_id, customer_id, total_cost, total_revenue, created_by, created) {
-        const result = await db.query(
-            `INSERT INTO contract(
-             opportunity_id, customer_id, total_cost, total_revenue, status, created_by, created_at
-             )VALUES ($1, $2, $3, $4, $5, $6, now())
-             RETURNING *
-            `,
-            [opportunity_id, customer_id, total_cost, total_revenue,  "without_debt", created_by]
-        
-        )
-        return result.rows;
-    },
+async create(opportunity_id, customer_id, total_cost, total_revenue, created_by, attachments = [], name = null) {
+  const res = await db.query(
+    `INSERT INTO contract(
+       opportunity_id, customer_id, total_cost, total_revenue,
+       status, created_by, attachments, name, created_at, updated_at
+     )
+     VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8, now(), now())
+     RETURNING *`,
+    [
+      opportunity_id,
+      customer_id,
+      total_cost,
+      total_revenue,
+      'without_debt',           // nhớ đảm bảo enum contract_status_enum có giá trị này
+      created_by,
+      JSON.stringify(attachments),
+      name
+    ]
+  );
+  return res.rows[0];
+},
     async updateStatus(id, status, approverId = null) {
         const result = await db.query(
             `UPDATE contract

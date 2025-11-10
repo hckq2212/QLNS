@@ -41,122 +41,176 @@ const contractService = {
         const result = await contracts.update(id, payload);
         return result;
     },
-    createFromOpportunity: async (opportunityId, customerId, totalCost, totalRevenue, customerTemp, creatorId ) => {
-        try {
-            // ensure customer id (handle different return shapes from customers.create)
-            let cid = customerId;
-            if (!cid) {
-                const createdCustomer = await customers.create(customerTemp);
-                cid = createdCustomer && (
-                    createdCustomer.id ||
-                    (createdCustomer.rows && createdCustomer.rows[0] && createdCustomer.rows[0].id) ||
-                    (Array.isArray(createdCustomer) && createdCustomer[0] && createdCustomer[0].id)
-                );
-            }
+createFromOpportunity: async (
+  opportunityId,
+  customerId,
+  totalCost,
+  totalRevenue,
+  customerTemp,
+  creatorId,
+  extraAttachments = []
+) => {
+  try {
+    // 0) fetch attachments + name từ opportunity
+    let inheritedAttachments = [];
+    let oppName = null;
+    try {
+      const oppRes = await db.query(
+        `SELECT COALESCE(attachments, '[]'::jsonb) AS attachments, name
+         FROM opportunity
+         WHERE id = $1`,
+        [opportunityId]
+      );
+      const row = oppRes?.rows?.[0];
+      inheritedAttachments = Array.isArray(row?.attachments) ? row.attachments : [];
+      oppName = row?.name || null;
+    } catch (e) {
+      console.warn('Không lấy được attachments/name từ opportunity:', e?.message || e);
+      inheritedAttachments = [];
+      oppName = null;
+    }
 
-            // compute totals from opportunity_service (existing logic)
-            let computedTotalRevenue = 0;
-            let computedTotalCost = 0;
-            try {
-                const rowsRes = await db.query(
-                    `SELECT os.quantity, os.proposed_price,
-                            s.base_cost AS service_base_cost,
-                            sj.base_cost AS sj_base_cost
-                     FROM opportunity_service os
-                     LEFT JOIN service s ON s.id = os.service_id
-                     LEFT JOIN service_job sj ON sj.id = os.service_job_id
-                     WHERE os.opportunity_id = $1`,
-                    [opportunityId]
-                );
-                const rows = (rowsRes && rowsRes.rows) ? rowsRes.rows : (Array.isArray(rowsRes) ? rowsRes : []);
-                for (const r of rows) {
-                    const qty = r.quantity != null ? Number(r.quantity) : 1;
-                    const proposed = r.proposed_price != null ? Number(r.proposed_price) : 0;
-                    computedTotalRevenue += proposed * qty;
-                    const baseUnit = (r.sj_base_cost != null ? Number(r.sj_base_cost) : (r.service_base_cost != null ? Number(r.service_base_cost) : 0));
-                    computedTotalCost += baseUnit * qty;
-                }
-            } catch (e) {
-                console.warn('Failed to compute totals from opportunity_service, falling back to provided totals:', e);
-            }
-
-            const finalTotalRevenue = Number.isFinite(computedTotalRevenue) && computedTotalRevenue > 0 ? computedTotalRevenue : (Number(totalRevenue) || 0);
-            const finalTotalCost = Number.isFinite(computedTotalCost) && computedTotalCost > 0 ? computedTotalCost : (Number(totalCost) || 0);
-
-            // update opportunity status
-            const opStatus = "contract_created";
-            const opStatusRes = await opportunities.update(opportunityId, { status: opStatus });
-            if (!opStatusRes) throw new Error("Không thể cập nhật trạng thái cơ hội");
-
-            // create contract (contracts.create should return row or {rows})
-            const created = await contracts.create(opportunityId, cid, finalTotalCost, finalTotalRevenue, creatorId);
-            const createdRow = created && (created.rows ? created.rows[0] : (Array.isArray(created) ? created[0] : created));
-            if (!createdRow) {
-                console.error('contracts.create returned unexpected value:', created);
-                throw new Error('Failed to create contract (unexpected model return)');
-            }
-
-            // create contract_service entries copied from opportunity_service
-            try {
-                const client = await db.connect();
-                try {
-                    await client.query('BEGIN');
-
-                    const osRes = await client.query(
-                        `SELECT os.service_id, os.service_job_id, os.quantity, os.proposed_price,
-                                s.base_cost AS service_base_cost,
-                                sj.base_cost AS sj_base_cost
-                         FROM opportunity_service os
-                         LEFT JOIN service s ON s.id = os.service_id
-                         LEFT JOIN service_job sj ON sj.id = os.service_job_id
-                         WHERE os.opportunity_id = $1`,
-                        [opportunityId]
-                    );
-
-                    const osRows = (osRes && osRes.rows) ? osRes.rows : [];
-                    for (const r of osRows) {
-                        const qty = r.quantity != null ? Number(r.quantity) : 1;
-                        const salePrice = r.proposed_price != null ? Number(r.proposed_price) : 0;
-                        const baseUnit = (r.sj_base_cost != null ? Number(r.sj_base_cost) : (r.service_base_cost != null ? Number(r.service_base_cost) : 0));
-                        const costPrice = baseUnit;
-
-                        await client.query(
-                            `INSERT INTO contract_service
-                             (contract_id, service_id, service_job_id, qty, sale_price, cost_price, created_at, updated_at)
-                             VALUES ($1,$2,$3,$4,$5,$6, now(), now())`,
-                            [createdRow.id, r.service_id || null, r.service_job_id || null, qty, salePrice, costPrice]
-                        );
-                    }
-
-                    await client.query('COMMIT');
-                } catch (e) {
-                    try { await client.query('ROLLBACK'); } catch (_) {}
-                    console.error('Failed to create contract_service rows, rolling back:', e);
-                    throw e;
-                } finally {
-                    client.release();
-                }
-            } catch (e) {
-                // non-fatal for contract creation, but surface error
-                console.error('Error while inserting contract_service rows:', e && (e.stack || e.message) || e);
-                throw e;
-            }
-
-            // assign code atomically if model helper exists (preferred)
-            if (typeof contracts.assignCodeIfMissing === 'function') {
-                // pass created_at if available so model can derive year/month
-                const ts = createdRow.created_at || new Date();
-                const updated = await contracts.assignCodeIfMissing(createdRow.id, ts);
-                return updated || createdRow;
-            }
-
-            // fallback: if no assign helper, return created row (you may call contracts.update(...) to set code fields)
-            return createdRow;
-        } catch (err) {
-            console.error('contractService.create error:', err && err.stack ? err.stack : err);
-            throw err;
+    // Hợp nhất attachments (unique theo url)
+    const merged = (() => {
+      const map = new Map();
+      const push = (arr) => {
+        for (const it of Array.isArray(arr) ? arr : []) {
+          if (it && typeof it === 'object') {
+            const url = typeof it.url === 'string' ? it.url : '';
+            const key = url || JSON.stringify(it); // fallback nếu không có url
+            if (!map.has(key)) map.set(key, it);
+          }
         }
-    },
+      };
+      push(inheritedAttachments);
+      push(extraAttachments);
+      return Array.from(map.values());
+    })();
+
+    // 1) ensure customer id
+    let cid = customerId;
+    if (!cid) {
+      const createdCustomer = await customers.create(customerTemp);
+      cid = createdCustomer && (
+        createdCustomer.id ||
+        (createdCustomer.rows && createdCustomer.rows[0] && createdCustomer.rows[0].id) ||
+        (Array.isArray(createdCustomer) && createdCustomer[0] && createdCustomer[0].id)
+      );
+    }
+
+    // 2) compute totals từ opportunity_service
+    let computedTotalRevenue = 0;
+    let computedTotalCost = 0;
+    try {
+      const rowsRes = await db.query(
+        `SELECT os.quantity, os.proposed_price,
+                s.base_cost AS service_base_cost,
+                sj.base_cost AS sj_base_cost
+         FROM opportunity_service os
+         LEFT JOIN service s ON s.id = os.service_id
+         LEFT JOIN service_job sj ON sj.id = os.service_job_id
+         WHERE os.opportunity_id = $1`,
+        [opportunityId]
+      );
+      const rows = rowsRes?.rows ?? (Array.isArray(rowsRes) ? rowsRes : []);
+      for (const r of rows) {
+        const qty = r.quantity != null ? Number(r.quantity) : 1;
+        const proposed = r.proposed_price != null ? Number(r.proposed_price) : 0;
+        const baseUnit = (r.sj_base_cost != null ? Number(r.sj_base_cost)
+                         : (r.service_base_cost != null ? Number(r.service_base_cost) : 0));
+        computedTotalRevenue += proposed * qty;
+        computedTotalCost += baseUnit * qty;
+      }
+    } catch (e) {
+      console.warn('Failed to compute totals from opportunity_service, fallback:', e);
+    }
+
+    const finalTotalRevenue = Number.isFinite(computedTotalRevenue) && computedTotalRevenue > 0
+      ? computedTotalRevenue : (Number(totalRevenue) || 0);
+    const finalTotalCost = Number.isFinite(computedTotalCost) && computedTotalCost > 0
+      ? computedTotalCost : (Number(totalCost) || 0);
+
+    // 3) update opportunity status
+    const opStatus = "contract_created";
+    const opStatusRes = await opportunities.update(opportunityId, { status: opStatus });
+    if (!opStatusRes) throw new Error("Không thể cập nhật trạng thái cơ hội");
+
+    // 4) tạo contract: truyền attachments + name kế thừa
+    const created = await contracts.create(
+      opportunityId,
+      cid,
+      finalTotalCost,
+      finalTotalRevenue,
+      creatorId,
+      merged,          // attachments
+      oppName || null  // name
+    );
+
+    const createdRow = created && (created.rows ? created.rows[0] : (Array.isArray(created) ? created[0] : created));
+    if (!createdRow) {
+      console.error('contracts.create returned unexpected value:', created);
+      throw new Error('Failed to create contract (unexpected model return)');
+    }
+
+    // 5) copy opportunity_service -> contract_service (giữ nguyên)
+    try {
+      const client = await db.connect();
+      try {
+        await client.query('BEGIN');
+
+        const osRes = await client.query(
+          `SELECT os.service_id, os.service_job_id, os.quantity, os.proposed_price,
+                  s.base_cost AS service_base_cost,
+                  sj.base_cost AS sj_base_cost
+           FROM opportunity_service os
+           LEFT JOIN service s ON s.id = os.service_id
+           LEFT JOIN service_job sj ON sj.id = os.service_job_id
+           WHERE os.opportunity_id = $1`,
+          [opportunityId]
+        );
+
+        const osRows = osRes?.rows ?? [];
+        for (const r of osRows) {
+          const qty = r.quantity != null ? Number(r.quantity) : 1;
+          const salePrice = r.proposed_price != null ? Number(r.proposed_price) : 0;
+          const baseUnit = (r.sj_base_cost != null ? Number(r.sj_base_cost)
+                           : (r.service_base_cost != null ? Number(r.service_base_cost) : 0));
+          const costPrice = baseUnit;
+
+          await client.query(
+            `INSERT INTO contract_service
+             (contract_id, service_id, service_job_id, qty, sale_price, cost_price, created_at, updated_at)
+             VALUES ($1,$2,$3,$4,$5,$6, now(), now())`,
+            [createdRow.id, r.service_id || null, r.service_job_id || null, qty, salePrice, costPrice]
+          );
+        }
+
+        await client.query('COMMIT');
+      } catch (e) {
+        try { await client.query('ROLLBACK'); } catch (_) {}
+        console.error('Failed to create contract_service rows, rolling back:', e);
+        throw e;
+      } finally {
+        client.release();
+      }
+    } catch (e) {
+      console.error('Error while inserting contract_service rows:', e?.stack || e);
+      throw e;
+    }
+
+    // 6) gán code nếu có helper
+    if (typeof contracts.assignCodeIfMissing === 'function') {
+      const ts = createdRow.created_at || new Date();
+      const updated = await contracts.assignCodeIfMissing(createdRow.id, ts);
+      return updated || createdRow;
+    }
+    return createdRow;
+  } catch (err) {
+    console.error('contractService.create error:', err && err.stack ? err.stack : err);
+    throw err;
+  }
+},
+
     updateStatus: async (id, status, approverId = null) => {
         // call model with normalized arg order (id, status, approverId)
         const updated = await contracts.updateStatus(id, status, approverId);

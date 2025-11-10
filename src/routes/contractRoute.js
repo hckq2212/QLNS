@@ -13,7 +13,7 @@ contractRoute.use(checkToken);
 
 contractRoute.get('/', contractController.getAll);
 contractRoute.post('/opportunity/:opportunityId', contractController.createFromOpportunity)
-contractRoute.get('/:status', contractController.getByStatus);
+contractRoute.get('/status/:status', contractController.getByStatus);
 contractRoute.get('/:id/services', contractController.getServices);
 contractRoute.get('/:id', contractController.getById);
 contractRoute.get('/:id/proposal-contract', contractController.getProposalContractUrl)
