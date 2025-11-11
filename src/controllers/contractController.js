@@ -120,8 +120,8 @@ uploadProposalContract: async (req, res) => {
 
     const orig = req.file.originalname || 'file';
     const safeBase = orig.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_\-]/g, '_');
-    const folderPath = `QLNS/proposal_contracts`;
-    const publicName = `${Date.now()}_${safeBase}`;
+    const folderPath = `QLNS/proposal_contracts/${contractId}`;
+    const publicName = `${safeBase}`;
 
     const streamUpload = (buffer, opts = {}) =>
       new Promise((resolve, reject) => {
@@ -187,8 +187,8 @@ sign: async (req, res) => {
       .replace(/\.[^/.]+$/, '')           // bỏ .pdf/.docx
       .replace(/[^a-zA-Z0-9_\-]/g, '_');  // tên an toàn
 
-    const folder = 'QLNS/signed_contracts';
-    const publicName = `${Date.now()}_${base}`; // để khỏi trùng
+    const folder = 'QLNS/signed_contracts/${contractId}';
+    const publicName = `${base}`; // để khỏi trùng
 
     const uploadResult = await streamUpload(req.file.buffer, {
       resource_type: 'raw',

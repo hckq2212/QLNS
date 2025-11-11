@@ -21,7 +21,7 @@ const customerService = {
             company: payload.company ?? null,
             address: payload.address ?? null,
             note: payload.note ?? null,
-            identity_code: payload.identity_code ?? payload.identityCode ?? null,
+            identity_code: payload.identity_code ??  null,
             status: payload.status ?? 'potential'
         };
         return await customers.create(data);

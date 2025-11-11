@@ -27,6 +27,43 @@ const serviceJobController = {
             console.error(err)
         }
     }
+
+    ,
+    create: async (req, res) => {
+        try {
+            const payload = req.body || {};
+            if (req.user && req.user.id) payload.created_by = payload.created_by || req.user.id;
+            const created = await serviceJobService.create(payload);
+            return res.status(201).json(created);
+        } catch (err) {
+            console.error('Error creating service job', err);
+            return res.status(400).json({ error: err.message || 'Bad request' });
+        }
+    },
+
+    update: async (req, res) => {
+        const id = req.params.id;
+        try {
+            const updated = await serviceJobService.update(id, req.body || {});
+            if (!updated) return res.status(404).json({ error: 'Service job not found or nothing to update' });
+            return res.json(updated);
+        } catch (err) {
+            console.error('Error updating service job', err);
+            return res.status(400).json({ error: err.message || 'Bad request' });
+        }
+    },
+
+    remove: async (req, res) => {
+        const id = req.params.id;
+        try {
+            const removed = await serviceJobService.remove(id);
+            if (!removed) return res.status(404).json({ error: 'Service job not found' });
+            return res.json({ success: true, serviceJob: removed });
+        } catch (err) {
+            console.error('Error removing service job', err);
+            return res.status(500).json({ error: 'Internal server error' });
+        }
+    }
 }
 
 export default serviceJobController;
