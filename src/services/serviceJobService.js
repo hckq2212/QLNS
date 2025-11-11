@@ -20,8 +20,8 @@ const serviceJobService = {
             name: payload.name ?? null,
             description: payload.description ?? null,
             base_cost: payload.base_cost ?? payload.baseCost ?? null,
-            duration: payload.duration ?? null,
-            created_by: payload.created_by ?? payload.createdBy ?? null
+            owner_type: payload.owner_type,
+            partner_id: payload.partner_id ?? null
         };
         const result = await serviceJobs.create(data);
         return result;
@@ -43,6 +43,10 @@ const serviceJobService = {
         if (!id) throw new Error('Missing id');
         const result = await serviceJobs.remove(id);
         return result;
+    },
+    getServicesForJob: async (serviceJobId) => {
+     const result = await serviceJobs.getServicesForJob(serviceJobId)
+     return result
     }
 }
 

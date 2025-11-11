@@ -33,6 +33,7 @@ const serviceJobController = {
         try {
             const payload = req.body || {};
             if (req.user && req.user.id) payload.created_by = payload.created_by || req.user.id;
+            console.log(payload)
             const created = await serviceJobService.create(payload);
             return res.status(201).json(created);
         } catch (err) {
@@ -63,7 +64,17 @@ const serviceJobController = {
             console.error('Error removing service job', err);
             return res.status(500).json({ error: 'Internal server error' });
         }
-    }
+    },
+    getServicesForJob: async (req, res) => {
+  const jobId = req.params.id;
+  try {
+    const rows = await serviceJobService.getServicesForJob(jobId);
+    return res.json(rows);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Failed to fetch services for job' });
+  }
+}
 }
 
 export default serviceJobController;

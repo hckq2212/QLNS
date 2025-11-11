@@ -1,12 +1,12 @@
 import express from 'express'
 import partnerController from '../controllers/partnerController.js'
 
-const router = express.Router();
+const partnerRoute = express.Router();
 
-router.get('/', partnerController.getAll);
-router.post('/', partnerController.create);
-router.get('/:id', partnerController.getById);
-router.patch('/:id', partnerController.update);
-router.delete('/:id', partnerController.remove);
+partnerRoute.get('/', partnerController.getAll);
+partnerRoute.post('/', partnerController.create);
+partnerRoute.get('/:id', partnerController.getById);
+partnerRoute.patch('/:id', partnerController.update);
+partnerRoute.delete('/:id', partnerController.remove);
 
-export default router;
+export default partnerRoute;

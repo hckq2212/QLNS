@@ -6,24 +6,32 @@ const services = {
         return result.rows;
     },
     getById: async (id) => {
+        const serviceRes = await db.query('SELECT * FROM service WHERE id = $1', [id]);
+        const service = serviceRes.rows[0];
+        if (!service) return null;
+
+        const jobsRes = await db.query(`
+            SELECT sj.*
+            FROM service_job sj
+            JOIN service_job_mapping map ON map.service_job_id = sj.id
+            WHERE map.service_id = $1
+        `, [id]);
+
+        service.jobs = jobsRes.rows;
+        return service;
+    },
+
+    create: async ({ name = null, description = null } = {}) => {
         const result = await db.query(
-            'SELECT * FROM service WHERE id = $1',
-            [id]
-        )
-        return result.rows[0];
-    }
-    ,
-    create: async ({ name = null, code = null, price = null, description = null, duration = null } = {}) => {
-        const result = await db.query(
-            `INSERT INTO service (name, code, price, description, duration)
-             VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-            [name, code, price, description, duration]
+            `INSERT INTO service (name, description)
+             VALUES ($1, $2) RETURNING *`,
+            [name, description ]
         );
         return result.rows[0];
     },
 
     update: async (id, fields = {}) => {
-        const allowed = ['name', 'code', 'price', 'description', 'duration'];
+        const allowed = ['name', 'base_price', 'description'];
         const setClauses = [];
         const params = [];
         let idx = 1;

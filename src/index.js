@@ -16,6 +16,7 @@ import serviceJobRoute from './routes/serviceJobRoute.js'
 import teamRoute from './routes/teamRoute.js'
 import meRoute from './routes/meRoute.js'
 import cookieParser from 'cookie-parser';
+import partnerRoute from './routes/partnerRoute.js'
 
 
 const app = express()
@@ -27,7 +28,6 @@ app.use(express.urlencoded({ extended: true }));
 
 
 app.use('/api/auth', authRoute)
-    // mount opportunity routes under /api/opportunity (previously had duplicate /api/api)
 app.use('/api/opportunity', auth, opportunityRoute)
 app.use('/api/user',auth,userRoute)
 app.use('/api/customer',auth,customerRoute)
@@ -40,6 +40,7 @@ app.use('/api/appendix',auth, contractAppendixRoute)
 app.use('/api/service-job',auth, serviceJobRoute)
 app.use('/api/team',auth, teamRoute)
 app.use('/api/me',auth, meRoute)
+app.use('/api/partner', partnerRoute);
 
 
 app.get('/',(req, res) =>{

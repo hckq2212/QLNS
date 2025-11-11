@@ -6,6 +6,7 @@ const serviceJobRoute = express.Router();
 serviceJobRoute.get('/', serviceJobController.getAll);
 serviceJobRoute.post('/', serviceJobController.create);
 serviceJobRoute.get('/service/:id', serviceJobController.getByServiceId);
+serviceJobRoute.get('/:id/services', serviceJobController.getServicesForJob);
 serviceJobRoute.get('/:id', serviceJobController.getById);
 serviceJobRoute.patch('/:id', serviceJobController.update);
 serviceJobRoute.delete('/:id', serviceJobController.remove);
