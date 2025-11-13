@@ -12,17 +12,17 @@ const partners = {
         return res.rows[0];
     },
 
-    async create({ name = null, phone = null, email = null, company = null, address = null, note = null, status = 'active', created_by = null } = {}) {
+    async create({ name = null,contact_name = null, phone = null, email = null,  address = null, note = null,  created_by = null, type } = {}) {
         const res = await db.query(
-            `INSERT INTO partner (name, phone, email, company, address, note, status, created_by)
+            `INSERT INTO partner (name,contact_name, phone, email, address, note, created_by, type)
              VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-            [name, phone, email, company, address, note, status, created_by]
+            [name,contact_name, phone, email,  address, note,  created_by, type]
         );
         return res.rows[0];
     },
 
     async update(id, fields = {}) {
-        const allowed = ['name', 'phone', 'email', 'company', 'address', 'note', 'status'];
+        const allowed = ['name', 'phone', 'email', 'address', 'note', 'type', 'contact_name'];
         const set = [];
         const params = [];
         let idx = 1;

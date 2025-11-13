@@ -16,7 +16,6 @@ const serviceJobService = {
     ,
     create: async (payload = {}) => {
         const data = {
-            service_id: payload.service_id ?? payload.serviceId ?? null,
             name: payload.name ?? null,
             description: payload.description ?? null,
             base_cost: payload.base_cost ?? payload.baseCost ?? null,

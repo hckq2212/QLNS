@@ -18,7 +18,7 @@ const customers = {
         return res.rows[0];
     },
     async update(id, fields = {}) {
-        const allowed = ['name', 'phone', 'email', 'company', 'address', 'note', 'identity_code', 'status'];
+        const allowed = ['name', 'phone', 'email', 'address', 'note', 'identity_code', 'status'];
         const set = [];
         const params = [];
         let idx = 1;

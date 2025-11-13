@@ -104,7 +104,7 @@ getAll: async (req, res) => {
         try{
             const result = await contractService.approveByBOD(id, status, approverId)
             if(result){
-                return res.status(200).send("Đã duyệt")
+                return res.status(200).send(result)
             }
         }catch(err){
             console.error(err)

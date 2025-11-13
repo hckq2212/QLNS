@@ -219,10 +219,11 @@ createFromOpportunity: async (
     approveByBOD: async (id, status, approverId) => {
         try{
             const updateStatus = await contracts.updateStatus(id, status, approverId)
+            if(!updateStatus) throw new Error('Lỗi khi đổi trạng thái hợp đồng')
             const contract = await contracts.getById(id);
             const project = await projects.create({
                 contract_id: contract.id,
-                name: `Dự án cho hợp đồng ${contract.code}` ,
+                name: `Dự án  ${contract.name}` ,
                 description: contract.description || null,
                 created_by: approverId
             });

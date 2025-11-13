@@ -16,11 +16,11 @@ const partnerService = {
             name: payload.name,
             phone: payload.phone ?? payload.phone_number ?? null,
             email: payload.email ?? null,
-            company: payload.company ?? null,
             address: payload.address ?? null,
             note: payload.note ?? null,
-            status: payload.status ?? 'active',
-            created_by: payload.created_by ?? payload.createdBy ?? null
+            type: payload.type ?? 'individual',
+            created_by: payload.created_by ?? payload.createdBy ?? null,
+            contact_name:payload.contact_name ?? null
         };
         return await partners.create(data);
     },

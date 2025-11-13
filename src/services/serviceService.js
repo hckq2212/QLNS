@@ -17,7 +17,7 @@ const serviceService = {
             code: payload.code ?? payload.service_code ?? null,
             price: payload.price ?? payload.cost ?? null,
             description: payload.description ?? null,
-            duration: payload.duration ?? payload.default_duration ?? null
+            duration: payload.duration ?? payload.default_duration ?? null,
         };
         const result = await services.create(data);
         return result;
