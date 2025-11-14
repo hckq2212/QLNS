@@ -57,7 +57,7 @@ const projects = {
         const result = await db.query(
             `UPDATE project
              SET team_id = $1,
-             status = 'assigned'
+             status = 'assigning'
              WHERE id = $2
              RETURNING *
             `,

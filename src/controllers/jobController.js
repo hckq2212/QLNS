@@ -54,10 +54,9 @@ const jobController = {
         try {
             const id = req.params.id;
             const body = {
-                assigned_type: req.body.assigned_type || 'user',
                 assigned_id: req.body.assigned_id,
                 description: req.body.description ?? null,
-                status: 'in_progress',
+                status: 'assigning',
                 start_date: req.body.start_date,
                 deadline: req.body.deadline
             };

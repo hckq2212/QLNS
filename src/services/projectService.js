@@ -1,5 +1,6 @@
 import projects from '../models/projects.js'
 import db from '../config/db.js'
+import contracts from '../models/contracts.js';
 
 const projectService = {
     async list() {
@@ -27,6 +28,20 @@ const projectService = {
     },
     async assignTeam(id, teamId){
         const result = await projects.assignTeam(id, teamId);
+        if(result) {
+            try {
+                const conId = result.contract_id;
+                const status = 'assigned';
+                const contract = await contracts.getById(conId);
+                // ensure we check contract.status (not conId which is an integer)
+                if (contract && contract.status !== 'assigned') {
+                    await contracts.updateStatus(conId, status);
+                }
+
+            } catch (error) {
+                console.error(error)
+            }
+        }
         return result
     },
     async createProjectForContract(contractId, name, description, startDate, creatorId) {
@@ -68,7 +83,8 @@ const projectService = {
             const csRes = await client.query(
                 `SELECT cs.service_id, cs.service_job_id, cs.qty, cs.sale_price, cs.cost_price,
                         COALESCE(sj.name, s.name) AS job_name,
-                        COALESCE(sj.base_cost, s.base_cost, 0) AS base_cost
+                        COALESCE(sj.base_cost, s.base_cost, 0) AS base_cost,
+                        sj.owner_type AS owner_type
                  FROM contract_service cs
                  LEFT JOIN service_job sj ON sj.id = cs.service_job_id
                  LEFT JOIN service s ON s.id = cs.service_id
@@ -76,7 +92,6 @@ const projectService = {
                 [contractId]
             );
             const items = csRes.rows || [];
-
             const createdJobs = [];
             for (const it of items) {
                 const qty = it.qty != null ? Number(it.qty) : 1;
@@ -84,13 +99,14 @@ const projectService = {
                     const jobName = it.job_name || `Job for service ${it.service_id}`;
                     const baseCost = it.base_cost != null ? it.base_cost : 0;
                     const salePrice = it.sale_price != null ? it.sale_price : 0;
-
+                    // determine assigned_type per item (fall back to 'user' if missing)
+                    const assignedType = (it.owner_type && String(it.owner_type)) || 'user';
                     const ins = await client.query(
                         `INSERT INTO job
-                         (contract_id, project_id, service_id, service_job_id, name, base_cost, sale_price, created_by, created_at, updated_at, status)
-                         VALUES ($1,$2,$3,$4,$5,$6,$7,$8, now(), now(), 'not_assigned')
+                         (contract_id, project_id, service_id, service_job_id, name, base_cost, sale_price, created_by, created_at, updated_at, status, assigned_type)
+                         VALUES ($1,$2,$3,$4,$5,$6,$7,$8, now(), now(), 'not_assigned', $9)
                          RETURNING *`,
-                        [contractId, projectId, it.service_id, it.service_job_id, jobName, baseCost, salePrice, userId]
+                        [contractId, projectId, it.service_id, it.service_job_id, jobName, baseCost, salePrice, userId, assignedType]
                     );
                     createdJobs.push(ins.rows[0]);
                 }
