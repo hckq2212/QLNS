@@ -31,6 +31,30 @@ const jobService = {
         const result = await jobs.getMyJob(id);
         return result;
     },
+    finish: async (jobId, newEvidence = [], userId = null) => {
+        // use model getter to fetch current evidence
+        const job = await jobs.getById(jobId);
+        if (!job) throw new Error('Job không tồn tại');
+
+        const current = Array.isArray(job.evidence) ? job.evidence : [];
+
+        // Merge (unique by url). Normalize fields to { filename, url }
+        const map = new Map();
+        for (const it of current) if (it && it.url) map.set(it.url, { filename: it.filename || it.name || 'file', url: it.url });
+        for (const it of newEvidence) if (it && it.url) map.set(it.url, { filename: it.filename || it.name || 'file', url: it.url });
+        const merged = Array.from(map.values());
+
+        // Update status='done', evidence, updated_by
+        const payload = {
+            status: 'review',
+            evidence: merged,
+            updated_by: userId,
+        };
+
+        const updated = await jobs.update(jobId, payload);
+        if (!updated) throw new Error('Không thể cập nhật job');
+        return updated;
+    },
 
 }
 
