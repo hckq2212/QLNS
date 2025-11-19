@@ -20,7 +20,6 @@ const serviceJobService = {
             description: payload.description ?? null,
             base_cost: payload.base_cost ?? payload.baseCost ?? null,
             owner_type: payload.owner_type,
-            partner_id: payload.partner_id ?? null
         };
         const result = await serviceJobs.create(data);
         return result;

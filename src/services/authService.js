@@ -5,10 +5,8 @@ import jwt from 'jsonwebtoken'
 
 const saltRounds = Number(process.env.SALT_ROUNDS) || 10;
 
-// create tokens for a given user object
 function createToken(user){
-    const role = user.role
-    const payload = { id: user.id, name: user.username, role: user.role }
+    const payload = { id: user.id, name: user.username, role_id: user.role_id }
     const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET_KEY, {
         expiresIn: '1h'
     })

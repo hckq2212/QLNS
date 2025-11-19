@@ -41,7 +41,7 @@ const customerController = {
             return res.status(400).json({ error: err.message || 'Bad request' });
         }
     },
-        removeCustomer: async (req, res) => {
+    removeCustomer: async (req, res) => {
         const id = req.params.id;
         try {
             const removed = await customerService.deleteCustomer(id);
@@ -51,7 +51,17 @@ const customerController = {
             console.error('removeCustomer error:', err);
             return res.status(500).json({ error: 'Internal server error' });
         }
-    }
+    },
+    getAvailableCustomers: async (req, res) => {
+        try {
+            const user = req.user;
+            const customers = await customerService.getAvailableCustomers(user);
+            res.json(customers);
+        } catch (err) {
+            res.status(400).json({ error: err.message });
+        }
+}
+
 }
 
 

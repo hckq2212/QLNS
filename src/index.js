@@ -19,6 +19,7 @@ import cookieParser from 'cookie-parser';
 import partnerRoute from './routes/partnerRoute.js'
 import serviceJobMappingRoute from './routes/serviceJobMappingRoute.js'
 import serviceCriteriaRoute from './routes/serviceCriteriaRoute.js'
+import partnerServiceJobRoute from './routes/partnerServiceJobRoute.js'
 
 
 const app = express()
@@ -44,6 +45,7 @@ app.use('/api/team',auth, teamRoute)
 app.use('/api/me',auth, meRoute)
 app.use('/api/partner', partnerRoute);
 app.use('/api/service-job-mapping', serviceJobMappingRoute);
+app.use('/api/partner-service-job', partnerServiceJobRoute);
 
 app.use('/api/service-criteria', serviceCriteriaRoute);
 

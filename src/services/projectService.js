@@ -101,13 +101,26 @@ const projectService = {
                     const salePrice = it.sale_price != null ? it.sale_price : 0;
                     // determine assigned_type per item (fall back to 'user' if missing)
                     const assignedType = (it.owner_type && String(it.owner_type)) || 'user';
-                    const ins = await client.query(
+                    
+                   const ins = await client.query(
                         `INSERT INTO job
-                         (contract_id, project_id, service_id, service_job_id, name, base_cost, sale_price, created_by, created_at, updated_at, status, assigned_type)
-                         VALUES ($1,$2,$3,$4,$5,$6,$7,$8, now(), now(), 'not_assigned', $9)
-                         RETURNING *`,
-                        [contractId, projectId, it.service_id, it.service_job_id, jobName, baseCost, salePrice, userId, assignedType]
+                        (contract_id, project_id, service_id, service_job_id, name, base_cost, sale_price, created_by, created_at, updated_at, status, assigned_type)
+                        VALUES ($1,$2,$3,$4,$5,$6,$7,$8, now(), now(), $9, $10)
+                        RETURNING *`,
+                        [
+                        contractId,
+                        projectId,
+                        it.service_id,
+                        it.service_job_id,
+                        jobName,
+                        baseCost,
+                        salePrice,
+                        userId,
+                        'not_assigned',
+                        assignedType
+                        ]
                     );
+
                     createdJobs.push(ins.rows[0]);
                 }
             }

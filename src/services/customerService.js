@@ -1,4 +1,5 @@
 import customers from '../models/customers.js'
+import roles from '../models/roles.js'
 
 const customerService = {
     getAllCustomer: async () => {
@@ -29,6 +30,15 @@ const customerService = {
     deleteCustomer: async (id) => {
         if (!id) throw new Error('Missing id');
         return await customers.remove(id);
+    },
+    getAvailableCustomers: async (user) => {
+        try{
+            const roleId = user.role_id
+            const role = await roles.getRoleById(roleId);
+
+        }catch(err){
+            
+        }
     }
 }
 export default customerService;
