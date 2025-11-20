@@ -1,6 +1,7 @@
 import projects from '../models/projects.js'
 import db from '../config/db.js'
 import contracts from '../models/contracts.js';
+import projectReview  from '../models/projectReview.js';
 
 const projectService = {
     async list() {
@@ -81,14 +82,17 @@ const projectService = {
 
             // fetch contract_service items and associated names/costs
             const csRes = await client.query(
-                `SELECT cs.service_id, cs.service_job_id, cs.qty, cs.sale_price, cs.cost_price,
-                        COALESCE(sj.name, s.name) AS job_name,
-                        COALESCE(sj.base_cost, s.base_cost, 0) AS base_cost,
-                        sj.owner_type AS owner_type
-                 FROM contract_service cs
-                 LEFT JOIN service_job sj ON sj.id = cs.service_job_id
-                 LEFT JOIN service s ON s.id = cs.service_id
-                 WHERE cs.contract_id = $1`,
+                `SELECT cs.service_id, 
+                    sjm.service_job_id,
+                    COALESCE(sj.name, 'Default Job Name') AS job_name, 
+                    COALESCE(sj.base_cost, 0) AS base_cost,
+                    COALESCE(sj.owner_type, 'user') AS owner_type
+                FROM contract_service cs
+                LEFT JOIN service_job_mapping sjm ON sjm.service_id = cs.service_id 
+                LEFT JOIN service_job sj ON sj.id = sjm.service_job_id 
+                LEFT JOIN service s ON s.id = cs.service_id 
+                WHERE cs.contract_id = $1;
+                `,
                 [contractId]
             );
             const items = csRes.rows || [];
@@ -101,7 +105,6 @@ const projectService = {
                     const salePrice = it.sale_price != null ? it.sale_price : 0;
                     // determine assigned_type per item (fall back to 'user' if missing)
                     const assignedType = (it.owner_type && String(it.owner_type)) || 'user';
-                    
                    const ins = await client.query(
                         `INSERT INTO job
                         (contract_id, project_id, service_id, service_job_id, name, base_cost, sale_price, created_by, created_at, updated_at, status, assigned_type)
@@ -159,7 +162,43 @@ const projectService = {
         }
 
         return updated;
+    },
+    requestReview: async (projectId, userId) => {
+    const client = await db.connect();
+    try {
+      await client.query('BEGIN');
+
+      // 1. Cập nhật project sang review
+      const project = await projectReview.updateProjectStatusToReview(projectId);
+      if (!project) throw new Error('Không tìm thấy project');
+
+      // 2. Lấy danh sách service trong hợp đồng
+      const services = await projectReview.getContractServicesByProject(projectId);
+      if (!services.length) throw new Error('Project này không có dịch vụ nào để đánh giá');
+
+      // 3. Tạo form review cho từng dịch vụ
+      for (const svc of services) {
+        const review = await projectReview.createContractServiceReview(
+          svc.contract_service_id,
+          userId
+        );
+        if (review?.id) {
+          await projectReview.createReviewCriteria(review.id, svc.service_id);
+        }
+      }
+
+      await client.query('COMMIT');
+      return { message: 'Đã chuyển project sang review và tạo form đánh giá cho các dịch vụ' };
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
     }
+  }
+
+
 }
+
 
 export default projectService;

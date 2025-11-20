@@ -71,7 +71,6 @@ getAll: async (req, res) => {
         const creatorId = req.user.id;
         const opportunityId = req.params?.opportunityId;
 
-        // destructuring an toàn: nếu req.body undefined -> dùng {}
         const {
             customerId = null,
             totalCost,

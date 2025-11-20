@@ -5,6 +5,7 @@ import projectController from '../controllers/projectController.js'
 const router = express.Router()
 
 router.get('/', projectController.list)
+router.post('/:id/request-review', projectController.requestReview)
 router.post('/', projectController.create)
 router.get('/status/:status', projectController.getByStatus)
 router.get('/:id', projectController.getById)

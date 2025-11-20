@@ -103,7 +103,18 @@ const projectController = {
             console.error('project ack error', err);
             return res.status(500).json({ error: 'Internal server error' });
         }
+    },
+     requestReview: async (req, res) => {
+    try {
+      const { id } = req.params; 
+      const userId = req.user?.id || req.body.user_id; 
+      const result = await projectService.requestReview(id, userId);
+      return res.status(201).json(result);
+    } catch (err) {
+      console.error('requestReview error:', err);
+      return res.status(400).json({ error: err.message });
     }
+  }
 }
 
 export default projectController;
