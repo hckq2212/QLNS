@@ -3,6 +3,7 @@ import customers from "../models/customers.js";
 import db from "../config/db.js";
 import opportunities from "../models/opportunities.js";
 import projects from "../models/projects.js";
+import contractServices from '../models/contractServices.js';
 
 const contractService = {
     getAll: async () => {
@@ -301,6 +302,23 @@ createFromOpportunity: async (
         const result = await contracts.getByStatus(status);
         return result
     }
+      ,
+      // Save a link into contract_service.result (appends an entry)
+      saveResultLink: async (contractServiceId, url, savedBy = null, description = null) => {
+        if (!contractServiceId) throw new Error('contract_service id required');
+        if (!url) throw new Error('url is required');
+
+        const item = {
+          url: String(url),
+          description: description != null ? String(description) : null,
+          saved_by: savedBy || null,
+          saved_at: new Date().toISOString(),
+        };
+
+        const updated = await contractServices.appendResultLink(contractServiceId, item);
+        if (!updated) throw new Error('Không thể cập nhật result cho contract_service');
+        return updated;
+      }
    
 }
 

@@ -20,6 +20,7 @@ import partnerRoute from './routes/partnerRoute.js'
 import serviceJobMappingRoute from './routes/serviceJobMappingRoute.js'
 import serviceCriteriaRoute from './routes/serviceCriteriaRoute.js'
 import partnerServiceJobRoute from './routes/partnerServiceJobRoute.js'
+import contractServiceRoute from './routes/contractServiceRoute.js'
 
 
 const app = express()
@@ -43,11 +44,12 @@ app.use('/api/appendix',auth, contractAppendixRoute)
 app.use('/api/service-job',auth, serviceJobRoute)
 app.use('/api/team',auth, teamRoute)
 app.use('/api/me',auth, meRoute)
-app.use('/api/partner', partnerRoute);
-app.use('/api/service-job-mapping', serviceJobMappingRoute);
-app.use('/api/partner-service-job', partnerServiceJobRoute);
+app.use('/api/partner',auth, partnerRoute);
+app.use('/api/service-job-mapping',auth, serviceJobMappingRoute);
+app.use('/api/partner-service-job',auth, partnerServiceJobRoute);
 
-app.use('/api/service-criteria', serviceCriteriaRoute);
+app.use('/api/service-criteria',auth, serviceCriteriaRoute);
+app.use('/api/contract-service', auth, contractServiceRoute);
 
 app.get('/',(req, res) =>{
     res.status(200).send("Hello word")

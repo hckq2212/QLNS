@@ -63,8 +63,8 @@ const jobController = {
         status: 'in_progress',
         start_date: req.body.start_date,
         deadline: req.body.deadline,
+        priority: req.body.priority
       };
-
       // ---- LẤY FILES TỪ multer.fields([{ name: 'files' }]) ----
       // req.files có dạng { files: [ ... ] } hoặc mảng nếu cấu hình khác
       let files = [];
@@ -120,6 +120,7 @@ const jobController = {
       if (!body.assigned_id) return res.status(400).json({ error: 'Thiếu assigned_id' });
       if (!body.start_date) return res.status(400).json({ error: 'Thiếu ngày bắt đầu' });
       if (!body.deadline) return res.status(400).json({ error: 'Thiếu deadline' });
+
 
       // ---- UPDATE ----
       const result = await jobService.assign(id, body);

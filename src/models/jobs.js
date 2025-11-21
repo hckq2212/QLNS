@@ -27,8 +27,9 @@ const jobs = {
     'start_date',
     'end_date',
     'deadline',
-    'evidence',     // jsonb
-    'attachments',  // jsonb
+    'evidence',    
+    'attachments',
+    'priority' 
     ];
 
     const setClauses = [];
