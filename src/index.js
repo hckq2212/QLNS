@@ -21,6 +21,7 @@ import serviceJobMappingRoute from './routes/serviceJobMappingRoute.js'
 import serviceCriteriaRoute from './routes/serviceCriteriaRoute.js'
 import partnerServiceJobRoute from './routes/partnerServiceJobRoute.js'
 import contractServiceRoute from './routes/contractServiceRoute.js'
+import contractServiceReviewRoute from './routes/contractServiceReviewRoute.js'
 
 
 const app = express()
@@ -50,6 +51,7 @@ app.use('/api/partner-service-job',auth, partnerServiceJobRoute);
 
 app.use('/api/service-criteria',auth, serviceCriteriaRoute);
 app.use('/api/contract-service', auth, contractServiceRoute);
+app.use('/api/contract-service-review', auth, contractServiceReviewRoute);
 
 app.get('/',(req, res) =>{
     res.status(200).send("Hello word")
