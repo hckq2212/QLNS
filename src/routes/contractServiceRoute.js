@@ -10,6 +10,8 @@ router.post('/', contractServiceController.create);
 router.get('/contract/:contractId', contractServiceController.getByContract);
 router.get('/:id', contractServiceController.getById);
 router.patch('/:id', contractServiceController.update);
+router.put('/:id/result/:index', contractServiceController.updateResultItem);
+router.delete('/:id/result/:index', contractServiceController.deleteResultItem);
 router.delete('/:id', contractServiceController.remove);
 
 

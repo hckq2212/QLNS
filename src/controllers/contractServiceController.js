@@ -82,6 +82,42 @@ const contractServiceController = {
             console.error('contract_service.remove error', err);
             return res.status(400).json({ error: err.message || 'Bad request' });
         }
+    },
+     updateResultItem: async (req, res) => {
+        try {
+            const { id, index } = req.params;
+            const { url, description } = req.body || {};
+
+            if (!url) return res.status(400).json({ error: "url is required" });
+
+            const updated = await contractService.updateResultItem(
+                id,
+                Number(index),
+                { url, description: description ?? "" }
+            );
+
+            res.json({ message: "Updated", item: updated });
+        } catch (err) {
+            console.error("updateResultItem error:", err);
+            res.status(400).json({ error: err.message });
+        }
+    },
+
+    // DELETE /contract-service/:id/result/:index
+    deleteResultItem: async (req, res) => {
+        try {
+            const { id, index } = req.params;
+
+            const updated = await contractService.deleteResultItem(
+                id,
+                Number(index)
+            );
+
+            res.json({ message: "Deleted", item: updated });
+        } catch (err) {
+            console.error("deleteResultItem error:", err);
+            res.status(400).json({ error: err.message });
+        }
     }
 };
 

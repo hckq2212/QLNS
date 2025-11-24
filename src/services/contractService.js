@@ -318,7 +318,15 @@ createFromOpportunity: async (
         const updated = await contractServices.appendResultLink(contractServiceId, item);
         if (!updated) throw new Error('Không thể cập nhật result cho contract_service');
         return updated;
-      }
+      },
+          async updateResultItem(contractServiceId, index, item) {
+        return await contractServices.updateResultItem(contractServiceId, index, item);
+    },
+
+    // delete item theo index
+    async deleteResultItem(contractServiceId, index) {
+        return await contractServices.deleteResultItem(contractServiceId, index);
+    }
    
 }
 

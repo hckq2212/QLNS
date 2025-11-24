@@ -75,6 +75,61 @@ const contractServices = {
             [JSON.stringify(next), id]
         );
         return upd.rows[0] || null;
+    },
+     async updateResultItem(id, index, item) {
+        const client = await db.connect();
+
+        try {
+            // jsonb_set cần json string
+            const jsonItem = JSON.stringify(item);
+
+            const sql = `
+                UPDATE contract_service
+                SET result = jsonb_set(
+                    COALESCE(result, '[]'::jsonb),
+                    $2,
+                    $3::jsonb,
+                    true
+                )
+                WHERE id = $1
+                RETURNING *;
+            `;
+
+            const params = [
+                id,
+                `{${index}}`,  // -> {0}, {1}, {2}
+                jsonItem
+            ];
+
+            const { rows } = await client.query(sql, params);
+            return rows[0];
+        } finally {
+            client.release();
+        }
+    },
+
+    // --- DELETE ---
+    async deleteResultItem(id, index) {
+        const client = await db.connect();
+
+        try {
+            const sql = `
+                UPDATE contract_service
+                SET result = result #- $2
+                WHERE id = $1
+                RETURNING *;
+            `;
+
+            const params = [
+                id,
+                `{${index}}`
+            ];
+
+            const { rows } = await client.query(sql, params);
+            return rows[0];
+        } finally {
+            client.release();
+        }
     }
 };
 

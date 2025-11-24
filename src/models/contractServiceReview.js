@@ -36,15 +36,31 @@ getResultByContractService: async (contractServiceId) => {
   return result.rows[0]; // chỉ 1 dòng
 },
   // Lấy review hiện có (nếu đã chấm)
-  getExistingReview: async (contractServiceId) => {
-    const result = await db.query(`
-      SELECT csr.id AS review_id, csr.comment, csr.total_score, csrc.criteria_id, csrc.is_checked, csrc.score, csrc.note
-      FROM contract_service_review csr
-      LEFT JOIN contract_service_review_criteria csrc ON csrc.review_id = csr.id
-      WHERE csr.contract_service_id = $1
-    `, [contractServiceId]);
-    return result.rows.length ? result.rows : null;
-  },
+getExistingReview: async (contractServiceId) => {
+  const result = await db.query(`
+    SELECT 
+      csr.id AS review_id,
+      csr.comment,
+      csr.total_score,
+      csr.reviewed_by,
+      csr.reviewed_for,
+      u.full_name AS reviewer_name,
+      csrc.criteria_id,
+      csrc.is_checked,
+      csrc.score,
+      csrc.note,
+      sc.name AS criteria_name,
+      sc.weight
+    FROM contract_service_review csr
+    LEFT JOIN contract_service_review_criteria csrc ON csrc.review_id = csr.id
+    LEFT JOIN service_criteria sc ON sc.id = csrc.criteria_id
+    LEFT JOIN "user" u ON u.id = csr.reviewed_by
+    WHERE csr.contract_service_id = $1
+  `, [contractServiceId]);
+
+  return result.rows.length ? result.rows : null;
+},
+
     createReview: async (contractServiceId, reviewedBy, reviewedFor, comment, totalScore) => {
     const result = await db.query(`
       INSERT INTO contract_service_review (contract_service_id, reviewed_by, reviewed_for, comment, total_score)
