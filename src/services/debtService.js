@@ -15,6 +15,11 @@ const debtService = {
         return result;
     }
     ,
+    getByContract: async (contractId) => {
+        if (!contractId) throw new Error('contractId required');
+        const rows = await debts.getDebtByContractId(contractId);
+        return rows;
+    },
     create: async (contractId, amount, dueDate, title) => {
         const result = await debts.create(contractId, amount, dueDate, title);
         if(result){
@@ -28,10 +33,6 @@ const debtService = {
         }
         return result;
     },
-    payPartial: async (debtId, payAmount) => {
-        return await debts.payPartial(debtId, payAmount);
-    },
-
     runReminders: async () => {
         // simple implementation: find pending debts with due dates and return them for external processing
         const rows = await debts.findDebtsForReminders();

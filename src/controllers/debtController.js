@@ -66,6 +66,18 @@ const debtController = {
             console.error(err)
         }
     }
+    ,
+    getByContract: async (req, res) => {
+        try {
+            const contractId = req.params.contractId || req.query.contractId;
+            if (!contractId) return res.status(400).json({ error: 'contractId required' });
+            const rows = await debtService.getByContract(contractId);
+            return res.json(rows);
+        } catch (err) {
+            console.error('getByContract error', err);
+            return res.status(500).json({ error: 'Internal server error' });
+        }
+    }
     
 }
 

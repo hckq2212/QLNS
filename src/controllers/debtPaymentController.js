@@ -1,29 +1,44 @@
-import debtService from '../services/debtService.js'
+import debtPaymentService from "../services/debtPaymentService.js";
 
 const debtPaymentController = {
-    payPartial: async (req, res) => {
+    create: async (req, res) => {
         try {
-            const id = req.params.id;
-            const amount = req.body.amount;
-            if (!amount) return res.status(400).json({ error: 'amount required' });
-            const result = await debtService.payPartial(id, amount);
-            if (!result) return res.status(404).json({ error: 'Debt not found' });
-            return res.json(result);
+            const { debtId } = req.params;
+            const payment = await debtPaymentService.create(debtId, req.body);
+            res.json(payment);
         } catch (err) {
-            console.error('payPartial error', err);
-            return res.status(500).json({ error: 'Internal server error' });
+            res.status(400).json({ message: err.message });
         }
     },
 
-    reminders: async (req, res) => {
+    getByDebt: async (req, res) => {
         try {
-            const rows = await debtService.runReminders();
-            return res.json(rows);
+            const { debtId } = req.params;
+            const list = await debtPaymentService.getByDebt(debtId);
+            res.json(list);
         } catch (err) {
-            console.error('reminders error', err);
-            return res.status(500).json({ error: 'Internal server error' });
+            res.status(400).json({ message: err.message });
+        }
+    },
+
+    update: async (req, res) => {
+        try {
+            const { paymentId } = req.params;
+            const updated = await debtPaymentService.update(paymentId, req.body);
+            res.json(updated);
+        } catch (err) {
+            res.status(400).json({ message: err.message });
+        }
+    },
+
+    remove: async (req, res) => {
+        try {
+            const { paymentId } = req.params;
+            await debtPaymentService.remove(paymentId);
+            res.json({ message: "Deleted" });
+        } catch (err) {
+            res.status(400).json({ message: err.message });
         }
     }
-}
-
+};
 export default debtPaymentController;

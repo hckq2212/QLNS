@@ -2,12 +2,12 @@ import db from "../config/db.js";
 
 const debts = {
     getAll: async () => {
-        const result = await db.query("SELECT id, contract_id, amount, due_date, status from debt");
+        const result = await db.query("SELECT id, contract_id, amount, due_date,title, status from debt");
         return result.rows;
     },
     getById: async (id) => {
         const result = await db.query(
-            "SELECT id, contract_id, amount, due_date, status from debt WHERE id = $1",
+            "SELECT id, contract_id, amount, due_date, title, status from debt WHERE id = $1",
             [id]
         );
         return result.rows[0];
@@ -34,45 +34,7 @@ const debts = {
             throw err;
         }
     },
-    async payPartial(id, payAmount = 0) {
-        if (!id) throw new Error('id required');
-
-        const amountToPay = Number(payAmount);
-        if (!Number.isFinite(amountToPay) || amountToPay <= 0) {
-            throw new Error('payAmount must be positive');
-        }
-
-        // Use a transaction to avoid races
-        const client = await db.connect();
-        try {
-            await client.query('BEGIN');
-            // also select status and paid_at so we don't accidentally overwrite them with NULL
-            const curRes = await client.query('SELECT id, amount, paid_amount, status, paid_at FROM debt WHERE id = $1 FOR UPDATE', [id]);
-            if (!curRes.rows || curRes.rows.length === 0) {
-                await client.query('ROLLBACK');
-                return null;
-            }
-            const row = curRes.rows[0];
-            const currentPaid = row.paid_amount != null ? Number(row.paid_amount) : 0;
-            const total = row.amount != null ? Number(row.amount) : 0;
-            let newPaid = currentPaid + amountToPay;
-            let newStatus = row.status;
-            let paidAt = null;
-            if (newPaid >= total) {
-                newPaid = total;
-                newStatus = 'paid';
-                paidAt = new Date();
-            }
-            const upd = await client.query('UPDATE debt SET paid_amount = $1, paid_at = COALESCE($2, paid_at), status = $3 WHERE id = $4 RETURNING id, contract_id, amount, paid_amount, paid_at, status', [newPaid, paidAt, newStatus, id]);
-            await client.query('COMMIT');
-            return upd.rows[0];
-        } catch (err) {
-            await client.query('ROLLBACK');
-            throw err;
-        } finally {
-            client.release();
-        }
-    },
+    
 
     // find debts that need reminders or overdue handling
     async findDebtsForReminders() {
