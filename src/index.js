@@ -23,6 +23,7 @@ import partnerServiceJobRoute from './routes/partnerServiceJobRoute.js'
 import contractServiceRoute from './routes/contractServiceRoute.js'
 import contractServiceReviewRoute from './routes/contractServiceReviewRoute.js'
 import debtPaymentRoute from './routes/debtPaymentRoute.js'
+import roleRoute from './routes/roleRoute.js'
 
 
 const app = express()
@@ -54,6 +55,7 @@ app.use('/api/service-criteria',auth, serviceCriteriaRoute);
 app.use('/api/contract-service', auth, contractServiceRoute);
 app.use('/api/contract-service-review', auth, contractServiceReviewRoute);
 app.use('/api/debt-payment', auth, debtPaymentRoute);
+app.use('/api/role', auth, roleRoute);
 
 
 app.get('/',(req, res) =>{

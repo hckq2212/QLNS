@@ -14,7 +14,7 @@ const roles = {
 
   async getRoleById(id) {
     if (!id) return null;
-    const result = await db.query('SELECT id, code FROM "role" WHERE id = $1 LIMIT 1', [id]);
+    const result = await db.query('SELECT id, code, name FROM "role" WHERE id = $1 LIMIT 1', [id]);
     return result.rows[0];
   },
   async getMyRole(userId) {
@@ -34,6 +34,36 @@ const roles = {
   async getAll() {
     const result = await db.query('SELECT id, name FROM "role" ORDER BY id');
     return result.rows;
+  }
+  ,
+  async create(name, code) {
+    const res = await db.query(
+      `INSERT INTO "role" (name, code, created_at, updated_at) VALUES ($1, $2, now(), now()) RETURNING id, name, code`,
+      [name, code]
+    );
+    return res.rows[0] || null;
+  },
+  async update(id, fields = {}) {
+    const allowed = ['name', 'code'];
+    const set = [];
+    const params = [];
+    let idx = 1;
+    for (const key of allowed) {
+      if (Object.prototype.hasOwnProperty.call(fields, key) && fields[key] !== undefined && fields[key] !== null) {
+        set.push(`${key} = $${idx}`);
+        params.push(fields[key]);
+        idx++;
+      }
+    }
+    if (set.length === 0) return null;
+    params.push(id);
+    const sql = `UPDATE "role" SET ${set.join(', ')}, updated_at = now() WHERE id = $${idx} RETURNING id, name, code`;
+    const result = await db.query(sql, params);
+    return result.rows[0] || null;
+  },
+  async remove(id) {
+    const res = await db.query('DELETE FROM "role" WHERE id = $1 RETURNING id, name, code', [id]);
+    return res.rows[0] || null;
   }
 };
 

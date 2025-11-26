@@ -12,7 +12,12 @@ const authController = {
         const rawFullName = typeof req.body.fullName === 'string' ? req.body.fullName.trim() : (typeof req.body.full_name === 'string' ? req.body.full_name.trim() : '');
         const rawPhone = typeof req.body.phoneNumber === 'string' ? req.body.phoneNumber.trim() : (typeof req.body.phone === 'string' ? req.body.phone.trim() : '');
         const rawEmail = typeof req.body.email === 'string' ? req.body.email.trim() : '';
-        const rawRole = req.body.role_id || (await roles.getRoleByCode('staff')).id
+        // Resolve role: prefer provided role_id, otherwise fetch default 'staff' role safely
+        let rawRole = req.body.role_id;
+        if (!rawRole) {
+            const defaultRole = await roles.getRoleByCode('staff');
+            rawRole = defaultRole && defaultRole.id ? defaultRole.id : null;
+        }
 
 
         const userInput = {
