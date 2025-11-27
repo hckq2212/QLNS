@@ -6,10 +6,8 @@
   "scripts": {
     "test": "mocha --exit \"test/**/*.mocha.test.js\" && node test/paymentPlan.test.js && node test/opportunityService.test.js && node test/debt.test.js && node test/job.test.js",
     "start": "node src/index.js",
-    "integration:up": "docker compose -f docker-compose.integration.yml up -d",
-    "integration:down": "docker compose -f docker-compose.integration.yml down",
-    "test:integration": "cross-env DB_HOST=localhost DB_PORT=5433 DB_USER=postgres DB_PASSWORD=postgres DB_NAME=qlns_test mocha --exit \"test/integration/**/*.test.js\"",
-    "integration:run:windows": "powershell -ExecutionPolicy Bypass -File .\\scripts\\run-integration.ps1"
+    "dev": "nodemon src/index.js"
+    
   },
   "author": "",
   "license": "ISC",

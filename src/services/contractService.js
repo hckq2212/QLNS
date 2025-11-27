@@ -160,7 +160,7 @@ createFromOpportunity: async (
         await client.query('BEGIN');
 
         const osRes = await client.query(
-          `SELECT os.service_id, os.service_job_id, os.quantity, os.proposed_price,
+          `SELECT os.service_id, os.quantity, os.proposed_price,
                   s.base_cost AS service_base_cost,
                   sj.base_cost AS sj_base_cost
            FROM opportunity_service os
@@ -180,9 +180,9 @@ createFromOpportunity: async (
 
           await client.query(
             `INSERT INTO contract_service
-             (contract_id, service_id, service_job_id, qty, sale_price, cost_price, created_at, updated_at)
-             VALUES ($1,$2,$3,$4,$5,$6, now(), now())`,
-            [createdRow.id, r.service_id || null, r.service_job_id || null, qty, salePrice, costPrice]
+             (contract_id, service_id, qty, sale_price, cost_price, created_at, updated_at)
+             VALUES ($1,$2,$3,$4,$5, now(), now())`,
+            [createdRow.id, r.service_id || null, qty, salePrice, costPrice]
           );
         }
 

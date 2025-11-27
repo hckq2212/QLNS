@@ -12,6 +12,7 @@ const opportunityService = {
     getByStatus: async (status) =>{
         return await opportunities.getByStatus(status);
     },
+    
     getOpportunityById: async (id) => {
         if (!id) throw new Error('id required');
         return await opportunities.getById(id);
