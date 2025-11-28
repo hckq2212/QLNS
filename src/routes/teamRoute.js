@@ -7,6 +7,7 @@ teamRoute.get('/', teamController.getAll)
 teamRoute.get('/:id/member', teamController.getMemberByTeamId)
 teamRoute.get('/:id', teamController.getById)
 teamRoute.post('/', teamController.create)
+teamRoute.put('/:id', teamController.update)
 
 
 export default teamRoute;
