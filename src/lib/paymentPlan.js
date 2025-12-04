@@ -20,6 +20,6 @@ export function splitInstallments(total, n) {
 
 export function debtsSumEquals(total, debts, epsilon = 0.01) {
   if (!Array.isArray(debts)) return false;
-  const sum = debts.reduce((s, d) => s + (Number(d) || 0), 0);
+  // const sum = debts.reduce((s, d) => s + (Number(d) || 0), 0);
   return Math.abs((Number(total) || 0) - sum) <= epsilon;
 }

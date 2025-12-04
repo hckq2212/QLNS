@@ -82,16 +82,19 @@ const projectService = {
 
             // fetch contract_service items and associated names/costs
             const csRes = await client.query(
-                `SELECT cs.service_id, 
+                `SELECT cs.service_id,
+                    cs.qty,
+                    cs.sale_price,
                     sjm.service_job_id,
-                    COALESCE(sj.name, 'Default Job Name') AS job_name, 
+                    COALESCE(sj.name, 'Default Job Name') AS job_name,
                     COALESCE(sj.base_cost, 0) AS base_cost,
                     COALESCE(sj.owner_type, 'user') AS owner_type
                 FROM contract_service cs
-                LEFT JOIN service_job_mapping sjm ON sjm.service_id = cs.service_id 
-                LEFT JOIN service_job sj ON sj.id = sjm.service_job_id 
-                LEFT JOIN service s ON s.id = cs.service_id 
+                LEFT JOIN service_job_mapping sjm ON sjm.service_id = cs.service_id
+                LEFT JOIN service_job sj ON sj.id = sjm.service_job_id
+                LEFT JOIN service s ON s.id = cs.service_id
                 WHERE cs.contract_id = $1;
+
                 `,
                 [contractId]
             );
@@ -99,10 +102,11 @@ const projectService = {
             const createdJobs = [];
             for (const it of items) {
                 const qty = it.qty != null ? Number(it.qty) : 1;
+                const baseCost = it.base_cost != null ? it.base_cost : 0;
+                const salePrice = it.sale_price != null ? it.sale_price : 0;
+
                 for (let i = 0; i < qty; i++) {
                     const jobName = it.job_name || `Job for service ${it.service_id}`;
-                    const baseCost = it.base_cost != null ? it.base_cost : 0;
-                    const salePrice = it.sale_price != null ? it.sale_price : 0;
                     // determine assigned_type per item (fall back to 'user' if missing)
                     const assignedType = (it.owner_type && String(it.owner_type)) || 'user';
                    const ins = await client.query(
