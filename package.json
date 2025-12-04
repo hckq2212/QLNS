@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "test": "mocha --exit \"test/**/*.mocha.test.js\" && node test/paymentPlan.test.js && node test/opportunityService.test.js && node test/debt.test.js && node test/job.test.js",
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
     
   },
   "author": "",
