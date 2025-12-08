@@ -24,6 +24,7 @@ import contractServiceRoute from './routes/contractServiceRoute.js'
 import contractServiceReviewRoute from './routes/contractServiceReviewRoute.js'
 import debtPaymentRoute from './routes/debtPaymentRoute.js'
 import roleRoute from './routes/roleRoute.js'
+import referralRoute from './routes/referralRoute.js'
 
 
 const app = express()
@@ -56,6 +57,7 @@ app.use('/api/contract-service', auth, contractServiceRoute);
 app.use('/api/contract-service-review', auth, contractServiceReviewRoute);
 app.use('/api/debt-payment', auth, debtPaymentRoute);
 app.use('/api/role', auth, roleRoute);
+app.use('/api/referral', auth, referralRoute);
 
 
 app.get('/',(req, res) =>{
