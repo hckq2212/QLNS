@@ -9,11 +9,11 @@ const customers = {
         const result = await db.query('SELECT * FROM customer WHERE id = $1',[id]);
         return result.rows[0]
     },
-      async create({ name = null, phone = null, email = null, address = null, identity_code = null, status } = {}) {
+      async create({ name = null, phone = null, email = null, address = null, identity_code = null, status, customer_source , referral_partner_id = null  } = {}) {
         const res = await db.query(
-            `INSERT INTO customer (name, phone, email, address, identity_code,status )
-             VALUES ($1,$2,$3,$4,$5, $6 ) RETURNING *`,
-            [name, phone, email, address, identity_code, status]
+            `INSERT INTO customer (name, phone, email, address, identity_code,status, customer_source, referral_partner_id )
+             VALUES ($1,$2,$3,$4,$5, $6, $7, $8 ) RETURNING *`,
+            [name, phone, email, address, identity_code, status, customer_source, referral_partner_id]
         );
         return res.rows[0];
     },

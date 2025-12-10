@@ -52,6 +52,7 @@ createFromOpportunity: async (
   extraAttachments = []
 ) => {
   try {
+    console.log(customerTemp)
     // 0) fetch attachments + name từ opportunity
     let inheritedAttachments = [];
     let oppName = null;
