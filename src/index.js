@@ -25,7 +25,8 @@ import contractServiceReviewRoute from './routes/contractServiceReviewRoute.js'
 import debtPaymentRoute from './routes/debtPaymentRoute.js'
 import roleRoute from './routes/roleRoute.js'
 import referralRoute from './routes/referralRoute.js'
-
+import jobReviewRoute from './routes/jobReviewRoute.js';
+import serviceJobCriteriaRoute from './routes/serviceJobCriteriaRoute.js';
 
 const app = express()
 const port = process.env.PORT || 3000
@@ -58,6 +59,8 @@ app.use('/api/contract-service-review', auth, contractServiceReviewRoute);
 app.use('/api/debt-payment', auth, debtPaymentRoute);
 app.use('/api/role', auth, roleRoute);
 app.use('/api/referral', auth, referralRoute);
+app.use('/api/job-review',auth, jobReviewRoute);
+app.use('/api/service-job-criteria',auth, serviceJobCriteriaRoute);
 
 
 app.get('/',(req, res) =>{
