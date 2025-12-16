@@ -1,4 +1,5 @@
 import services from "../models/services.js";
+import serviceJobMapping from "../models/serviceJobMapping.js";
 
 const serviceService = {
     getAll: async () => {
@@ -18,8 +19,17 @@ const serviceService = {
             price: payload.price ?? payload.cost ?? null,
             description: payload.description ?? null,
             duration: payload.duration ?? payload.default_duration ?? null,
+            output_job_id:payload.output_job_id,
         };
         const result = await services.create(data);
+        if (result && result.output_job_id) {
+            await serviceJobMapping.create({
+            service_id: result.id,
+            service_job_id: result.output_job_id,
+            });
+        }
+
+
         return result;
     },
 

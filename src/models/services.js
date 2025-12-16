@@ -20,13 +20,14 @@ const services = {
         service.jobs = jobsRes.rows;
         return service;
     },
-
-    create: async ({ name = null, description = null } = {}) => {
+    
+    create: async ({ name = null, description = null, code= null, output_job_id = null  } = {}) => {
         const result = await db.query(
-            `INSERT INTO service (name, description)
-             VALUES ($1, $2) RETURNING *`,
-            [name, description ]
+            `INSERT INTO service (name, description, code, output_job_id )
+             VALUES ($1, $2, $3, $4) RETURNING *`,
+            [name, description, code, output_job_id ]
         );
+        
         return result.rows[0];
     },
 
