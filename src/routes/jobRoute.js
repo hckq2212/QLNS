@@ -1,11 +1,17 @@
 import jobController from "../controllers/jobController.js";
 import express from 'express'
 import multer from 'multer'
+import { jobReviewController } from "../controllers/jobReviewController.js";
 
 const jobRoute = express.Router();
 
 // use memory storage so we can stream file buffers to Cloudinary
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
+// GET /job/:id/review-form?type=lead|sale
+jobRoute.get('/:id/review-form', jobReviewController.getReviewForm);
+
+// POST /job/:id/review?type=lead|sale
+jobRoute.post('/:id/review', jobReviewController.createReview);
 
 jobRoute.get('/', jobController.getAll);
 jobRoute.get('/me', jobController.getMyJob)

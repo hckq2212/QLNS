@@ -150,9 +150,9 @@ const jobController = {
             // Lấy files từ multer.fields([{ name: 'evidence' }])
             let files = [];
             if (Array.isArray(req.files)) {
-            files = req.files;
+              files = req.files;
             } else if (req.files && typeof req.files === 'object') {
-            files = Array.isArray(req.files.evidence) ? req.files.evidence : [];
+              files = Array.isArray(req.files.evidence) ? req.files.evidence : [];
             }
 
             // Upload lên Cloudinary, chỉ lưu { filename, url }
@@ -184,8 +184,6 @@ const jobController = {
             return res.status(500).json({ error: err.message || 'Internal server error' });
         }
     }
-
-
 }
 
 export default jobController;

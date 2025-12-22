@@ -23,7 +23,8 @@ const customerService = {
             address: payload.address ?? null,
             note: payload.note ?? null,
             identity_code: payload.identity_code ??  null,
-            status: payload.status ?? 'potential'
+            status: payload.status ?? 'potential',
+            referral_partner_id: payload.referral_partner_id ?? null
         };
         return await customers.create(data);
     },

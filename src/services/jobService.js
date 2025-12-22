@@ -32,29 +32,43 @@ const jobService = {
         return result;
     },
     finish: async (jobId, newEvidence = [], userId = null) => {
-        // use model getter to fetch current evidence
-        const job = await jobs.getById(jobId);
-        if (!job) throw new Error('Job không tồn tại');
+  const job = await jobs.getById(jobId);
+  if (!job) throw new Error('Job không tồn tại');
 
-        const current = Array.isArray(job.evidence) ? job.evidence : [];
+  const current = Array.isArray(job.evidence) ? job.evidence : [];
+  const map = new Map();
+  for (const it of current) if (it && it.url)
+    map.set(it.url, { filename: it.filename || it.name || 'file', url: it.url });
+  for (const it of newEvidence) if (it && it.url)
+    map.set(it.url, { filename: it.filename || it.name || 'file', url: it.url });
+  const merged = Array.from(map.values());
 
-        // Merge (unique by url). Normalize fields to { filename, url }
-        const map = new Map();
-        for (const it of current) if (it && it.url) map.set(it.url, { filename: it.filename || it.name || 'file', url: it.url });
-        for (const it of newEvidence) if (it && it.url) map.set(it.url, { filename: it.filename || it.name || 'file', url: it.url });
-        const merged = Array.from(map.values());
+  const payload = {
+    status: 'review', // chuyển sang trạng thái review
+    evidence: merged,
+    updated_by: userId,
+  };
 
-        // Update status='done', evidence, updated_by
-        const payload = {
-            status: 'review',
-            evidence: merged,
-            updated_by: userId,
-        };
+  const updated = await jobs.update(jobId, payload);
+  if (!updated) throw new Error('Không thể cập nhật job');
 
-        const updated = await jobs.update(jobId, payload);
-        if (!updated) throw new Error('Không thể cập nhật job');
-        return updated;
-    },
+  // ✅ Bắt đầu tạo review form
+  try {
+    const reviewTypes = ['lead', 'sale'];
+
+    for (const type of reviewTypes) {
+      const baseReview = await jobReview.createBaseReview(jobId, type, userId);
+      if (baseReview?.id) {
+        await jobReview.createReviewCriteriaFromTemplate(baseReview.id, jobId);
+      }
+    }
+  } catch (err) {
+    console.error('Tạo form review job thất bại:', err.message);
+    // không throw để tránh làm fail API finish
+  }
+
+  return updated;
+}
 
 }
 
