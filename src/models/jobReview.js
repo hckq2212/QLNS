@@ -35,16 +35,21 @@ export const jobReview = {
     return result.rows;
   },
 
-  createReview: async (jobId, type, reviewedBy, comment, totalScore) => {
-    const result = await db.query(`
-      INSERT INTO job_review (job_id, review_type, reviewed_by, comment, total_score)
-      VALUES ($1, $2, $3, $4, $5)
-      ON CONFLICT (job_id, review_type)
-      DO UPDATE SET comment=$4, total_score=$5, reviewed_by=$3, updated_at=now()
-      RETURNING id
-    `, [jobId, type, reviewedBy, comment, totalScore]);
-    return result.rows[0];
-  },
+createReview: async (jobId, type, reviewedBy, comment, is_passed) => {
+  const result = await db.query(`
+    INSERT INTO job_review (job_id, review_type, reviewed_by, comment, is_passed)
+    VALUES ($1, $2, $3, $4, $5)
+    ON CONFLICT (job_id, review_type)
+    DO UPDATE
+      SET comment = $4,
+          reviewed_by = $3,
+          is_passed = $5,
+          updated_at = now()
+    RETURNING id;
+  `, [jobId, type, reviewedBy, comment, is_passed]);
+  return result.rows[0];
+},
+
 
   insertCriteria: async (reviewId, criteriaList) => {
     for (const c of criteriaList) {

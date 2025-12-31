@@ -16,8 +16,9 @@ export const jobReviewController = {
   createReview: async (req, res) => {
     try {
       const { id } = req.params; // job_id
-      const type = req.query.type || 'lead';
-      const result = await jobReviewService.createReview(id, type, req.body);
+      const reviewed_by = req.user.id
+      const type = req.query.review_type || 'lead';
+      const result = await jobReviewService.createReview(id,reviewed_by, type, req.body);
       return res.status(201).json(result);
     } catch (err) {
       console.error('createReview error:', err);

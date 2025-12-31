@@ -40,29 +40,40 @@ export const jobReviewService = {
     return { job: jobInfo, criteria, review };
   },
 
-  createReview: async (jobId, type, payload) => {
-    const { reviewed_by, comment, criteria } = payload;
-    const client = await db.connect();
+  createReview: async (jobId, reviewed_by, type, payload) => {
+  const { comment, review, is_passed } = payload;
+  const client = await db.connect();
 
-    try {
-      await client.query('BEGIN');
+  try {
+    await client.query('BEGIN');
 
-      const criteriaList = Array.isArray(criteria) ? criteria : [];
-      const totalScore = criteriaList.length
-        ? criteriaList.reduce((s, c) => s + (Number(c.score) || 0), 0) / criteriaList.length
-        : null;
+    const criteriaList = Array.isArray(review) ? review : [];
 
-      const review = await jobReview.createReview(jobId, type, reviewed_by, comment, totalScore);
-      await db.query(`DELETE FROM job_review_criteria WHERE review_id=$1`, [review.id]);
-      await jobReview.insertCriteria(review.id, criteriaList);
+    // 🔹 Kiểm tra tất cả tiêu chí đạt (is_checked = true)
+    // const isPassed =
+    //   criteriaList.length > 0 &&
+    //   criteriaList.every(c => c.is_checked === true || c.is_checked === 'true');
 
-      await client.query('COMMIT');
-      return { id: review.id, total_score: totalScore };
-    } catch (err) {
-      await client.query('ROLLBACK');
-      throw err;
-    } finally {
-      client.release();
-    }
+    // 🔹 Lưu review chính (không cần total_score)
+    const reviewRecord = await jobReview.createReview(
+      jobId,
+      type,
+      reviewed_by,
+      comment,
+      is_passed
+    );
+
+    // 🔹 Làm mới chi tiết tiêu chí
+    await db.query(`DELETE FROM job_review_criteria WHERE review_id=$1`, [reviewRecord.id]);
+    await jobReview.insertCriteria(reviewRecord.id, criteriaList);
+
+    await client.query('COMMIT');
+    return { id: reviewRecord.id, is_passed:  reviewRecord.is_passed};
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
   }
+}
 };
