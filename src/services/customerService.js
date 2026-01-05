@@ -24,7 +24,8 @@ const customerService = {
             note: payload.note ?? null,
             identity_code: payload.identity_code ??  null,
             status: payload.status ?? 'potential',
-            referral_partner_id: payload.referral_partner_id ?? null
+            referral_partner_id: payload.referral_partner_id ?? null,
+            tax_code:payload.tax_code ?? null
         };
         return await customers.create(data);
     },

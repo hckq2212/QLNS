@@ -18,12 +18,12 @@ const opportunities = {
         return result.rows[0];
     },
 
-    async create({expected_revenue, expected_budget, success_rate, expected_end_date, priority, name, region, expected_price = null, description = null, created_by = null, status = 'waiting_bod_approval' }) {
+    async create({expected_revenue, expected_budget, success_rate, expected_end_date, priority, name, region, expected_price = null, description = null, created_by = null, status = 'waiting_bod_approval',implementation_months  }) {
         try {
             const result = await db.query(
-                `INSERT INTO opportunity (expected_revenue, expected_budget, success_rate, expected_end_date, priority, name, region, expected_price, description, created_by, status)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
-                [expected_revenue, expected_budget, success_rate, expected_end_date, priority, name, region, expected_price, description, created_by, status]
+                `INSERT INTO opportunity (expected_revenue, expected_budget, success_rate, expected_end_date, priority, name, region, expected_price, description, created_by, status,implementation_months)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+                [expected_revenue, expected_budget, success_rate, expected_end_date, priority, name, region, expected_price, description, created_by, status,implementation_months]
             );
             return result.rows[0];
         } catch (err) {
