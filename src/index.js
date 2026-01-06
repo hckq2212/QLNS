@@ -62,7 +62,7 @@ app.use('/api/role', auth, roleRoute);
 app.use('/api/referral', auth, referralRoute);
 app.use('/api/job-review',auth, jobReviewRoute);
 app.use('/api/service-job-criteria',auth, serviceJobCriteriaRoute);
-app.use('/acceptance',auth,  acceptanceRoute);
+app.use('/api/acceptance',auth,  acceptanceRoute);
 
 
 app.get('/',(req, res) =>{

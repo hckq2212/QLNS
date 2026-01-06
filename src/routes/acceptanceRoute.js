@@ -9,10 +9,14 @@ router.post('/draft', acceptanceController.createDraft);
 // PUT /acceptance/:id/submit-bod
 router.put('/:id/submit-bod', acceptanceController.submitToBOD);
 
-// PUT /acceptance/:id/approve
-router.put('/:id/approve', acceptanceController.approveByBOD);
+// PATCH /acceptance/:id/approve
+router.patch('/:id/approve/:jobId', acceptanceController.approveByBOD);
 
 // PUT /acceptance/:id/reject
 router.put('/:id/reject', acceptanceController.rejectByBOD);
+
+router.get('/project/:project_id', acceptanceController.getByProject);
+
+router.get('/:id', acceptanceController.getById);
 
 export default router;

@@ -1,13 +1,78 @@
 import { acceptance } from '../models/acceptance.js';
 import db from '../config/db.js';
+import contractServices from '../models/contractServices.js';
 // import nodemailer from 'nodemailer';
 
 export const acceptanceService = {
-  createDraft: async (payload) => {
-    const { project_id, created_by, jobs } = payload;
-    if (!project_id || !created_by || !jobs?.length)
-      throw new Error('Thiếu thông tin project_id, created_by hoặc jobs');
-    return await acceptance.createDraft(payload);
+  createDraft: async (payload, created_by) => {
+ if (!payload || typeof payload !== 'object') {
+    throw new Error('Payload không hợp lệ');
+  }
+
+  const { project_id, comment = null, job_ids } = payload;
+
+  if (!project_id) throw new Error('Thiếu project_id');
+
+  // 🔹 Xử lý job_ids hoặc jobs array
+  let jobIds = [];
+
+  if (Array.isArray(job_ids) && job_ids.length > 0) {
+    // Trường hợp gửi job_ids: [42, 43]
+    jobIds = [...new Set(job_ids.map(Number).filter(n => Number.isInteger(n)))];
+  } else if (Array.isArray(payload.jobs) && payload.jobs.length > 0) {
+    // Trường hợp gửi jobs: [{job_id: 42}, {id: 43}]
+    jobIds = [...new Set(
+      payload.jobs
+        .map(j => Number(j?.job_id ?? j?.id))
+        .filter(n => Number.isInteger(n))
+    )];
+  } else if (Array.isArray(payload.result) && payload.result.length > 0) {
+    // Fallback cho result
+    jobIds = [...new Set(
+      payload.result
+        .map(j => Number(j?.job_id ?? j?.id))
+        .filter(n => Number.isInteger(n))
+    )];
+  }
+
+  if (!jobIds.length) throw new Error('Thiếu job_ids hoặc jobs (phải là mảng có phần tử hợp lệ)');
+
+  const { rows: jobData } = await db.query(`
+    SELECT 
+      j.id AS job_id,
+      j.name AS job_name,
+      j.evidence,
+      s.code AS service_code,
+      s.id AS service_id
+    FROM job j
+    JOIN service s ON s.id = j.service_id
+    WHERE j.id = ANY($1::int[])
+    ORDER BY array_position($1::int[], j.id)
+  `, [jobIds]);
+
+  if (!jobData.length) throw new Error('Không tìm thấy job hợp lệ');
+
+  const cleanJobs = jobData.map((j, idx) => ({
+    job_id: j.job_id,
+    name: `${j.service_code}-${String(idx + 1).padStart(3, '0')}`,
+    evidence: j.evidence || [],
+    service_id: j.service_id,
+  }));
+
+  const initResult = cleanJobs.map(j => ({
+    job_id: j.job_id,
+    name: j.name,
+    evidence: j.evidence,
+    status: 'submitted',
+  }));
+
+  return await acceptance.createDraft({
+    project_id,
+    created_by,
+    comment,
+    jobs: cleanJobs,
+    result: initResult
+  });
   },
 
   submitToBOD: async (id) => {
@@ -18,59 +83,104 @@ export const acceptanceService = {
     return await acceptance.updateStatus(id, 'submitted_bod');
   },
 
-  approveByBOD: async (id, userId) => {
-    const record = await acceptance.getById(id);
-    if (!record) throw new Error('Không tìm thấy phiếu nghiệm thu');
+approveByBOD: async (id, jobId, userId) => {
+  const record = await acceptance.getById(id);
+  if (!record) throw new Error('Không tìm thấy phiếu nghiệm thu');
 
-    // ✅ Cập nhật trạng thái approved
-    const updated = await acceptance.updateStatus(id, 'approved', userId);
+  const resultArrCurrent = record.result || [];
 
-    // ✅ Cập nhật trạng thái job -> accepted
-    const jobIds = (record.jobs || []).map(Number);
+  // Nếu không truyền jobId => duyệt toàn bộ biên bản (approve all)
+  if (!jobId) {
+    // Update all jobs to accepted
+    const jobIds = (record.jobs || [])
+      .map(j => Number(j?.job_id ?? j?.id))
+      .filter(n => Number.isInteger(n));
+
     if (jobIds.length) {
       await db.query(
-        `UPDATE job SET status = 'accepted' WHERE id = ANY($1::int[])`,
+        `UPDATE job SET status = 'done' WHERE id = ANY($1::int[])`,
         [jobIds]
       );
+
+      // Update corresponding contract_service.result entries for each jobId
+      for (const jId of jobIds) {
+        const csRows = await db.query(
+          `SELECT id, COALESCE(result, '[]'::jsonb) AS result
+           FROM contract_service
+           WHERE EXISTS (
+             SELECT 1 FROM jsonb_array_elements(COALESCE(result, '[]'::jsonb)) elem
+             WHERE (elem->>'job_id')::int = $1
+           )`,
+          [jId]
+        );
+        for (const cs of csRows.rows) {
+          const arr = Array.isArray(cs.result) ? cs.result : [];
+          const updated = arr.map(item => {
+            if (Number(item?.job_id) === Number(jId)) {
+              return { ...item, status: 'approved' };
+            }
+            return item;
+          });
+          await contractServices.update(cs.id, { result: updated });
+        }
+      }
     }
-
-    // // ✅ Gửi mail cho khách hàng
-    // if (record.customer_email) {
-    //   const transporter = nodemailer.createTransport({
-    //     service: 'gmail',
-    //     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
-    //   });
-
-    //   const html = `
-    //     <h3>Kính gửi Quý khách,</h3>
-    //     <p>Dự án <b>${record.project_id}</b> đã được BOD duyệt nghiệm thu.</p>
-    //     <p>Vui lòng xem tài liệu tại đường dẫn sau:</p>
-    //     ${(record.result || [])
-    //       .map(f => `<li><a href="${f.url}">${f.name || f.url}</a></li>`)
-    //       .join('')}
-    //   `;
-
-    //   await transporter.sendMail({
-    //     from: process.env.SMTP_USER,
-    //     to: record.customer_email,
-    //     subject: `Thông báo nghiệm thu dự án #${record.project_id}`,
-    //     html
-    //   });
-
-    //   await acceptance.updateMailSent(id);
-    // }
-
+    // proceed to set acceptance status to approved
+    const updated = await acceptance.updateStatus(id, 'approved', userId);
     return updated;
-  },
+  }
 
-  rejectByBOD: async (id, userId) => {
+  // Partial / single job approval flow
+  const exists = resultArrCurrent.some(r => Number(r?.job_id) === Number(jobId));
+  if (!exists) throw new Error('job_id không nằm trong phiếu nghiệm thu');
+
+  const afterResult = await acceptance.updateResultStatusByJobId(id, jobId, 'approved');
+
+  // Update the job row
+  await db.query(`UPDATE job SET status = 'done' WHERE id = $1`, [Number(jobId)]);
+
+  // Update any contract_service records referencing this job (service_job_id)
+  const csRows = await db.query(
+    `SELECT id, COALESCE(result, '[]'::jsonb) AS result
+     FROM contract_service
+     WHERE EXISTS (
+       SELECT 1 FROM jsonb_array_elements(COALESCE(result, '[]'::jsonb)) elem
+       WHERE (elem->>'job_id')::int = $1
+     )`,
+    [Number(jobId)]
+  );
+  for (const cs of csRows.rows) {
+    const arr = Array.isArray(cs.result) ? cs.result : [];
+    const updated = arr.map(item => {
+      if (Number(item?.job_id) === Number(jobId)) {
+        return { ...item, status: 'approved' };
+      }
+      return item;
+    });
+    await contractServices.update(cs.id, { result: updated });
+  }
+
+  // Recompute overall acceptance status
+  const resultArr = afterResult?.result || [];
+  const allAccepted = resultArr.length > 0 && resultArr.every(x => x.status === 'approved' );
+  const nextAcceptanceStatus = allAccepted ? 'approved' : 'partial_approved';
+
+  const updated = await acceptance.updateStatus(id, nextAcceptanceStatus, allAccepted ? userId : null);
+  return updated;
+},
+
+
+  rejectByBOD: async (id, userId) => {  
     const record = await acceptance.getById(id);
     if (!record) throw new Error('Không tìm thấy phiếu nghiệm thu');
 
     const updated = await acceptance.updateStatus(id, 'rejected', userId);
 
     // ✅ Trả các job về trạng thái review
-    const jobIds = (record.jobs || []).map(Number);
+    const jobIds = (record.jobs || [])
+      .map(j => Number(j?.job_id ?? j?.id))
+      .filter(n => Number.isInteger(n));
+
     if (jobIds.length) {
       await db.query(
         `UPDATE job SET status = 'review' WHERE id = ANY($1::int[])`,
@@ -79,5 +189,13 @@ export const acceptanceService = {
     }
 
     return updated;
-  }
-};
+  },
+ getByProject : async (projectId) => {
+  if (!projectId) throw new Error('Thiếu project_id');
+  return await acceptance.getByProject(projectId);
+},
+ getById : async (id) => {
+  if (!id) throw new Error('Thiếu ID biên bản nghiệm thu');
+  return await acceptance.getById(id);
+ }
+}
