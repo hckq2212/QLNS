@@ -148,8 +148,9 @@ const jobController = {
     finish:async (req, res) => {
          try {
             const id = req.params.id;
+            const evidenceData = [];
 
-            // Lấy files từ multer.fields([{ name: 'evidence' }])
+            // 1. Lấy files từ multer.fields([{ name: 'evidence' }])
             let files = [];
             if (Array.isArray(req.files)) {
               files = req.files;
@@ -157,29 +158,64 @@ const jobController = {
               files = Array.isArray(req.files.evidence) ? req.files.evidence : [];
             }
 
-            // Upload lên Cloudinary, chỉ lưu { filename, url }
-            const uploaded = [];
-            for (const f of files) {
-            if (!f?.buffer) continue;
-            try {
-                const uploadResult = await new Promise((resolve, reject) => {
-                const uploadStream = cloudinary.uploader.upload_stream(
-                    { folder: `QLNS/job_evidence/${id}`, resource_type: 'auto' },
-                    (error, result) => (error ? reject(error) : resolve(result))
-                );
-                streamifier.createReadStream(f.buffer).pipe(uploadStream);
-                });
+            // 2. Upload files lên Cloudinary nếu có
+            if (files.length > 0) {
+              for (const f of files) {
+                if (!f?.buffer) continue;
+                try {
+                  const uploadResult = await new Promise((resolve, reject) => {
+                    const uploadStream = cloudinary.uploader.upload_stream(
+                      { folder: `QLNS/job_evidence/${id}`, resource_type: 'auto' },
+                      (error, result) => (error ? reject(error) : resolve(result))
+                    );
+                    streamifier.createReadStream(f.buffer).pipe(uploadStream);
+                  });
 
-                const filename = (f.originalname || uploadResult.original_filename || 'file').replace(/\s+/g, '_');
-                const url = uploadResult.secure_url || uploadResult.url;
-                uploaded.push({ filename, url });
-            } catch (e) {
-                console.error('Upload evidence failed', e);
-            }
+                  const filename = (f.originalname || uploadResult.original_filename || 'file').replace(/\s+/g, '_');
+                  const url = uploadResult.secure_url || uploadResult.url;
+                  evidenceData.push({ filename, url });
+                } catch (e) {
+                  console.error('Upload evidence failed', e);
+                }
+              }
             }
 
-            // Gọi service: set status='done' + merge evidence
-            const result = await jobService.finish(id, uploaded, req.user?.id || null);
+            // 3. Lấy URLs từ body nếu FE chỉ gửi URL (không upload file)
+            // Expect: { evidenceUrls: [{ url: "https://..." }, ...] }
+            if (req.body.evidenceUrls) {
+              try {
+                const urls = typeof req.body.evidenceUrls === 'string' 
+                  ? JSON.parse(req.body.evidenceUrls) 
+                  : req.body.evidenceUrls;
+                
+                if (Array.isArray(urls)) {
+                  for (const item of urls) {
+                    if (item && item.url) {
+                      // Trích xuất filename từ URL nếu không có
+                      let filename = item.filename || item.name;
+                      if (!filename) {
+                        try {
+                          const urlPath = new URL(item.url).pathname;
+                          filename = urlPath.split('/').pop() || 'file';
+                        } catch {
+                          filename = 'file';
+                        }
+                      }
+                      
+                      evidenceData.push({
+                        filename: filename,
+                        url: item.url
+                      });
+                    }
+                  }
+                }
+              } catch (e) {
+                console.error('Parse evidenceUrls failed', e);
+              }
+            }
+
+            // 4. Gọi service: set status='review' + merge evidence
+            const result = await jobService.finish(id, evidenceData, req.user?.id || null);
             return res.status(200).json(result);
         } catch (err) {
             console.error('finish error:', err);

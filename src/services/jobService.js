@@ -69,9 +69,7 @@ const jobService = {
   // }
 
   return updated;
-}
-
-    ,
+},
     rework: async (jobId, newEvidence = [], userId = null) => {
   const job = await jobs.getById(jobId);
   if (!job) throw new Error('Job không tồn tại');
