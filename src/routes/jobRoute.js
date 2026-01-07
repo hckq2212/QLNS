@@ -23,6 +23,10 @@ jobRoute.patch('/:id/assign', upload.fields([
 jobRoute.patch('/:id/finish', upload.fields([
 	{ name: 'evidence', maxCount: 5 },
 ]), jobController.finish)
+// PATCH /job/:id/rework - replace evidence and set status to 'review'
+jobRoute.patch('/:id/rework', upload.fields([
+    { name: 'evidence', maxCount: 5 },
+]), jobController.rework)
 jobRoute.get('/:id', jobController.getById);
 jobRoute.patch('/:id', jobController.update);
 jobRoute.post('/', jobController.create)

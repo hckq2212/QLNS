@@ -25,17 +25,23 @@ export const acceptanceController = {
   },
 
  approveByBOD : async (req, res) => {
-  const { id, jobId } = req.params;
-  const userId = req.user.id; // tuỳ hệ auth của bạn
-  const data = await acceptanceService.approveByBOD(id, jobId, userId);
-  res.json(data);
+  try{
+      const { id, jobId } = req.params;
+      const userId = req.user.id; // tuỳ hệ auth của bạn
+      const data = await acceptanceService.approveByBOD(id, jobId, userId);
+      res.json(data);
+  }catch (err) {
+      console.error('approveByBOD error:', err);
+      return res.status(400).json({ error: err.message });
+    }
+
 },
 
   rejectByBOD: async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id, jobId } = req.params;
       const userId = req.user?.id;
-      const result = await acceptanceService.rejectByBOD(id, userId);
+      const result = await acceptanceService.rejectByBOD(id, jobId, userId);
       return res.status(200).json(result);
     } catch (err) {
       console.error('rejectByBOD error:', err);

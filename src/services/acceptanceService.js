@@ -50,21 +50,39 @@ export const acceptanceService = {
     ORDER BY array_position($1::int[], j.id)
   `, [jobIds]);
 
+  const { rows: nameRows } = await db.query(`
+  SELECT
+    (elem->>'job_id')::int AS job_id,
+    elem->>'name' AS name
+  FROM contract_service cs
+  CROSS JOIN LATERAL jsonb_array_elements(COALESCE(cs.result, '[]'::jsonb)) elem
+  WHERE (elem->>'job_id')::int = ANY($1::int[])
+`, [jobIds]);
+
+const nameMap = new Map(nameRows.map(r => [r.job_id, r.name]));
+
+
   if (!jobData.length) throw new Error('Không tìm thấy job hợp lệ');
 
-  const cleanJobs = jobData.map((j, idx) => ({
+const cleanJobs = jobData.map((j, idx) => {
+  const existingName = nameMap.get(j.job_id);
+
+  return {
     job_id: j.job_id,
-    name: `${j.service_code}-${String(idx + 1).padStart(3, '0')}`,
+    // ✅ giữ name từ contract_service nếu có
+    name: existingName ?? `${j.service_code}-${String(idx + 1).padStart(3, '0')}`,
     evidence: j.evidence || [],
     service_id: j.service_id,
-  }));
+  };
+});
 
-  const initResult = cleanJobs.map(j => ({
-    job_id: j.job_id,
-    name: j.name,
-    evidence: j.evidence,
-    status: 'submitted',
-  }));
+const initResult = cleanJobs.map(j => ({
+  job_id: j.job_id,
+  name: j.name,
+  evidence: j.evidence,
+  status: 'submitted',
+}));
+
 
   return await acceptance.createDraft({
     project_id,
@@ -170,26 +188,95 @@ approveByBOD: async (id, jobId, userId) => {
 },
 
 
-  rejectByBOD: async (id, userId) => {  
-    const record = await acceptance.getById(id);
-    if (!record) throw new Error('Không tìm thấy phiếu nghiệm thu');
+  rejectByBOD: async (id, jobId, userId) => {  
+      const record = await acceptance.getById(id);
+      if (!record) throw new Error('Không tìm thấy phiếu nghiệm thu');
 
-    const updated = await acceptance.updateStatus(id, 'rejected', userId);
+      const resultArrCurrent = record.result || [];
 
-    // ✅ Trả các job về trạng thái review
-    const jobIds = (record.jobs || [])
-      .map(j => Number(j?.job_id ?? j?.id))
-      .filter(n => Number.isInteger(n));
+      // Nếu không truyền jobId => đánh dấu tất cả jobs need_rework và set job.status = 'rework'
+      if (!jobId) {
+        const jobIds = (record.jobs || [])
+          .map(j => Number(j?.job_id ?? j?.id))
+          .filter(n => Number.isInteger(n));
 
-    if (jobIds.length) {
-      await db.query(
-        `UPDATE job SET status = 'review' WHERE id = ANY($1::int[])`,
-        [jobIds]
+        if (jobIds.length) {
+          await db.query(
+            `UPDATE job SET status = 'rework' WHERE id = ANY($1::int[])`,
+            [jobIds]
+          );
+
+          // Update corresponding contract_service.result entries for each jobId
+          const csRows = await db.query(
+            `SELECT id, COALESCE(result, '[]'::jsonb) AS result
+             FROM contract_service
+             WHERE EXISTS (
+               SELECT 1 FROM jsonb_array_elements(COALESCE(result, '[]'::jsonb)) elem
+               WHERE (elem->>'job_id')::int = ANY($1::int[])
+             )`,
+            [jobIds]
+          );
+          for (const cs of csRows.rows) {
+            const arr = Array.isArray(cs.result) ? cs.result : [];
+            const updated = arr.map(item => {
+              if (jobIds.includes(Number(item?.job_id))) {
+                return { ...item, status: 'need_rework' };
+              }
+              return item;
+            });
+            await contractServices.update(cs.id, { result: updated });
+          }
+        }
+
+        // update acceptance result statuses to need_rework (direct DB update)
+        const newResult = resultArrCurrent.map(r => ({ ...r, status: 'need_rework' }));
+        await db.query(
+          `UPDATE acceptance SET result = $2::jsonb WHERE id = $1 RETURNING *`,
+          [id, JSON.stringify(newResult)]
+        );
+
+        const updated = await acceptance.updateStatus(id, 'rejected', userId);
+        return updated;
+      }
+
+      // Partial / single job rejection flow: set that job's result status to need_rework
+      const exists = resultArrCurrent.some(r => Number(r?.job_id) === Number(jobId));
+      if (!exists) throw new Error('job_id không nằm trong phiếu nghiệm thu');
+
+      const afterResult = await acceptance.updateResultStatusByJobId(id, jobId, 'need_rework');
+
+      // Update the job row to rework
+      await db.query(`UPDATE job SET status = 'rework' WHERE id = $1`, [Number(jobId)]);
+
+      // Update any contract_service records referencing this job
+      const csRows = await db.query(
+        `SELECT id, COALESCE(result, '[]'::jsonb) AS result
+         FROM contract_service
+         WHERE EXISTS (
+           SELECT 1 FROM jsonb_array_elements(COALESCE(result, '[]'::jsonb)) elem
+           WHERE (elem->>'job_id')::int = $1
+         )`,
+        [Number(jobId)]
       );
-    }
+      for (const cs of csRows.rows) {
+        const arr = Array.isArray(cs.result) ? cs.result : [];
+        const updated = arr.map(item => {
+          if (Number(item?.job_id) === Number(jobId)) {
+            return { ...item, status: 'need_rework' };
+          }
+          return item;
+        });
+        await contractServices.update(cs.id, { result: updated });
+      }
 
-    return updated;
-  },
+      // Recompute overall acceptance status
+      const resultArr = afterResult?.result || [];
+      const allNeedRework = resultArr.length > 0 && resultArr.every(x => x.status === 'need_rework');
+      const nextAcceptanceStatus = allNeedRework ? 'rejected' : 'partial_rejected';
+
+      const updated = await acceptance.updateStatus(id, nextAcceptanceStatus, allNeedRework ? userId : null);
+      return updated;
+    },
  getByProject : async (projectId) => {
   if (!projectId) throw new Error('Thiếu project_id');
   return await acceptance.getByProject(projectId);

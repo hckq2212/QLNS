@@ -1,4 +1,5 @@
 import jobs from "../models/jobs.js";
+import db from '../config/db.js';
 
 const jobService = {
     getAll: async () => {
@@ -53,19 +54,51 @@ const jobService = {
   if (!updated) throw new Error('Không thể cập nhật job');
 
   // ✅ Bắt đầu tạo review form
-  try {
-    const reviewTypes = ['lead', 'sale'];
+  // try {
+  //   const reviewTypes = ['lead', 'sale'];
 
-    for (const type of reviewTypes) {
-      const baseReview = await jobReview.createBaseReview(jobId, type, userId);
-      if (baseReview?.id) {
-        await jobReview.createReviewCriteriaFromTemplate(baseReview.id, jobId);
-      }
-    }
-  } catch (err) {
-    console.error('Tạo form review job thất bại:', err.message);
-    // không throw để tránh làm fail API finish
+  //   for (const type of reviewTypes) {
+  //     const baseReview = await jobReview.createBaseReview(jobId, type, userId);
+  //     if (baseReview?.id) {
+  //       await jobReview.createReviewCriteriaFromTemplate(baseReview.id, jobId);
+  //     }
+  //   }
+  // } catch (err) {
+  //   console.error('Tạo form review job thất bại:', err.message);
+  //   // không throw để tránh làm fail API finish
+  // }
+
+  return updated;
+}
+
+    ,
+    rework: async (jobId, newEvidence = [], userId = null) => {
+  const job = await jobs.getById(jobId);
+  if (!job) throw new Error('Job không tồn tại');
+
+  // Remove any job_review rows + their criteria for this job
+  try {
+    await db.query(`DELETE FROM job_review_criteria WHERE review_id IN (SELECT id FROM job_review WHERE job_id = $1)`, [jobId]);
+    await db.query(`DELETE FROM job_review WHERE job_id = $1`, [jobId]);
+  } catch (e) {
+    console.error('Failed to delete job_review for rework:', e);
+    // proceed even if cleanup fails
   }
+
+  // Replace existing evidence with newEvidence (do not merge)
+  const normalized = [];
+  for (const it of Array.isArray(newEvidence) ? newEvidence : []) {
+    if (it && it.url) normalized.push({ filename: it.filename || it.name || 'file', url: it.url });
+  }
+
+  const payload = {
+    status: 'review',
+    evidence: normalized,
+    updated_by: userId,
+  };
+
+  const updated = await jobs.update(jobId, payload);
+  if (!updated) throw new Error('Không thể cập nhật job');
 
   return updated;
 }

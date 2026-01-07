@@ -34,7 +34,9 @@ const jobController = {
     update: async (req, res) => {
         try {
             const jobId = req.params.id;
+            console.log(jobId)
             const payload = req.body || {}
+            console.log(payload)
             const result = await jobService.update(jobId, payload);
             if (!result) return res.status(404).json({ error: 'Job not found' });
             return res.status(200).json(result);
@@ -181,6 +183,49 @@ const jobController = {
             return res.status(200).json(result);
         } catch (err) {
             console.error('finish error:', err);
+            return res.status(500).json({ error: err.message || 'Internal server error' });
+        }
+    }
+
+    ,
+    rework: async (req, res) => {
+        try {
+            const id = req.params.id;
+
+            // Lấy files từ multer.fields([{ name: 'evidence' }])
+            let files = [];
+            if (Array.isArray(req.files)) {
+              files = req.files;
+            } else if (req.files && typeof req.files === 'object') {
+              files = Array.isArray(req.files.evidence) ? req.files.evidence : [];
+            }
+
+            // Upload lên Cloudinary, chỉ lưu { filename, url }
+            const uploaded = [];
+            for (const f of files) {
+              if (!f?.buffer) continue;
+              try {
+                const uploadResult = await new Promise((resolve, reject) => {
+                  const uploadStream = cloudinary.uploader.upload_stream(
+                    { folder: `QLNS/job_evidence/${id}`, resource_type: 'auto' },
+                    (error, result) => (error ? reject(error) : resolve(result))
+                  );
+                  streamifier.createReadStream(f.buffer).pipe(uploadStream);
+                });
+
+                const filename = (f.originalname || uploadResult.original_filename || 'file').replace(/\s+/g, '_');
+                const url = uploadResult.secure_url || uploadResult.url;
+                uploaded.push({ filename, url });
+              } catch (e) {
+                console.error('Upload evidence failed in rework', e);
+              }
+            }
+
+            // Gọi service: replace evidence (not merge) + set status='review'
+            const result = await jobService.rework(id, uploaded, req.user?.id || null);
+            return res.status(200).json(result);
+        } catch (err) {
+            console.error('rework error:', err);
             return res.status(500).json({ error: err.message || 'Internal server error' });
         }
     }
