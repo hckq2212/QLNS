@@ -192,6 +192,66 @@ getMyOpportunities: async (req, res) =>{
     }catch(err){
         console.error(err)
     }
+},
+
+// Add service to opportunity
+addService: async (req, res) => {
+    try {
+        const opportunityId = req.params.id;
+        const { service_id, quantity, note } = req.body;
+        
+        if (!service_id) {
+            return res.status(400).json({ error: 'service_id is required' });
+        }
+        
+        const result = await opportunityService.addService(opportunityId, {
+            service_id,
+            quantity: quantity || 1,
+            note: note || null
+        });
+        
+        return res.status(201).json(result);
+    } catch (err) {
+        console.error('addService error:', err);
+        return res.status(400).json({ error: err.message || 'Bad request' });
+    }
+},
+
+// Update service in opportunity
+updateService: async (req, res) => {
+    try {
+        const { id: opportunityId, serviceId } = req.params;
+        const fields = req.body;
+        
+        const result = await opportunityService.updateService(opportunityId, serviceId, fields);
+        
+        if (!result) {
+            return res.status(404).json({ error: 'Service not found or no changes made' });
+        }
+        
+        return res.json(result);
+    } catch (err) {
+        console.error('updateService error:', err);
+        return res.status(400).json({ error: err.message || 'Bad request' });
+    }
+},
+
+// Delete service from opportunity
+deleteService: async (req, res) => {
+    try {
+        const { id: opportunityId, serviceId } = req.params;
+        
+        const result = await opportunityService.deleteService(opportunityId, serviceId);
+        
+        if (!result) {
+            return res.status(404).json({ error: 'Service not found' });
+        }
+        
+        return res.json({ message: 'Service deleted successfully', item: result });
+    } catch (err) {
+        console.error('deleteService error:', err);
+        return res.status(400).json({ error: err.message || 'Bad request' });
+    }
 }
 
 

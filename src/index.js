@@ -28,6 +28,7 @@ import referralRoute from './routes/referralRoute.js'
 import jobReviewRoute from './routes/jobReviewRoute.js';
 import serviceJobCriteriaRoute from './routes/serviceJobCriteriaRoute.js';
 import acceptanceRoute from './routes/acceptanceRoute.js';
+import quoteRoute from './routes/quoteRoute.js';
 
 const app = express()
 const port = process.env.PORT || 3000
@@ -63,7 +64,7 @@ app.use('/api/referral', auth, referralRoute);
 app.use('/api/job-review',auth, jobReviewRoute);
 app.use('/api/service-job-criteria',auth, serviceJobCriteriaRoute);
 app.use('/api/acceptance',auth,  acceptanceRoute);
-
+app.use('/api/quote',auth, quoteRoute );
 
 app.get('/',(req, res) =>{
     res.status(200).send("Hello word")

@@ -188,6 +188,65 @@ services = services.map((s, i) => {
     }
 },
 
+// Add a service to an opportunity
+addService: async (opportunityId, serviceData) => {
+    if (!opportunityId) throw new Error('opportunityId is required');
+    if (!serviceData.service_id) throw new Error('service_id is required');
+    
+    // Verify opportunity exists
+    const opportunity = await opportunities.getById(opportunityId);
+    if (!opportunity) throw new Error('Opportunity not found');
+    
+    const result = await opportunityServices.create(
+        opportunityId,
+        serviceData.service_id,
+        serviceData.quantity || 1,
+        serviceData.note || null
+    );
+    
+    return result;
+},
+
+// Update a service in an opportunity
+updateService: async (opportunityId, serviceId, fields) => {
+    if (!opportunityId) throw new Error('opportunityId is required');
+    if (!serviceId) throw new Error('serviceId is required');
+    
+    // Verify opportunity exists
+    const opportunity = await opportunities.getById(opportunityId);
+    if (!opportunity) throw new Error('Opportunity not found');
+    
+    // Verify service belongs to this opportunity
+    const service = await opportunityServices.getById(serviceId);
+    if (!service) throw new Error('Service not found');
+    if (service.opportunity_id !== Number(opportunityId)) {
+        throw new Error('Service does not belong to this opportunity');
+    }
+    
+    const result = await opportunityServices.update(serviceId, fields);
+    return result;
+},
+
+// Delete a service from an opportunity
+deleteService: async (opportunityId, serviceId) => {
+    if (!opportunityId) throw new Error('opportunityId is required');
+    if (!serviceId) throw new Error('serviceId is required');
+    
+    // Verify opportunity exists
+    const opportunity = await opportunities.getById(opportunityId);
+    if (!opportunity) throw new Error('Opportunity not found');
+    
+    // Verify service belongs to this opportunity
+    const service = await opportunityServices.getById(serviceId);
+    if (!service) throw new Error('Service not found');
+    if (service.opportunity_id !== Number(opportunityId)) {
+        throw new Error('Service does not belong to this opportunity');
+    }
+    
+    const result = await opportunityServices.delete(serviceId);
+    return result;
+}
+
 
 }
 

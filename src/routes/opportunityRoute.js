@@ -10,6 +10,12 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 
 opportunityRoute.get('/me' , opportunityController.getMyOpportunities);
 opportunityRoute.get('/' , opportunityController.getAllOpportunities);
 opportunityRoute.get('/:id/services', opportunityController.getService)
+
+// Service management for opportunities
+opportunityRoute.post('/:id/services', opportunityController.addService);
+opportunityRoute.patch('/:id/services/:serviceId', opportunityController.updateService);
+opportunityRoute.delete('/:id/services/:serviceId', opportunityController.deleteService);
+
 // Get tất cả các cơ hội đang chờ duyệt
 opportunityRoute.get('/status/:status',  opportunityController.getByStatus);
 opportunityRoute.patch('/:id/quote', opportunityController.quote)
