@@ -179,7 +179,7 @@ services = services.map((s, i) => {
         }
 
         const oRes = await opportunities.update(opportunityId, body);
-        if (!oRes) throw new Error('Lỗi khi update cơ hội');
+        // if (!oRes) throw new Error('Lỗi khi update cơ hội');
 
         return { osUpdated, oRes };
     } catch (err) {

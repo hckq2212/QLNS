@@ -8,7 +8,10 @@ import roles from "./roles.js";
 const users = {
   async getAll() {
     const result = await db.query(
-      'SELECT u.id, u.username, u.full_name, r.name as role, u.email, u.phone, u.status FROM "user" u LEFT JOIN "role" r ON r.id = u.role_id'
+      `SELECT u.id, u.username, u.full_name, r.code as role, u.email, u.phone, u.status 
+      FROM "user" u 
+      LEFT JOIN "role" r 
+      ON r.id = u.role_id`
     );
     return result.rows;
   },

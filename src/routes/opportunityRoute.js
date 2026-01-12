@@ -18,7 +18,8 @@ opportunityRoute.delete('/:id/services/:serviceId', opportunityController.delete
 
 // Get tất cả các cơ hội đang chờ duyệt
 opportunityRoute.get('/status/:status',  opportunityController.getByStatus);
-opportunityRoute.patch('/:id/quote', opportunityController.quote)
+opportunityRoute.patch('/:id/quote', opportunityController.quote);
+opportunityRoute.put('/:id/quote', opportunityController.updateQuote);
 
 // Get by creator   
 opportunityRoute.get('/creator/:userId', opportunityController.getByCreator);
