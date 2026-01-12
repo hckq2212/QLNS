@@ -1,30 +1,88 @@
-import quote from '../models/quote.js'
+import quote from '../models/quote.js';
+import opportunities from '../models/opportunities.js';
 
 const quoteService = {
-  // Lấy tất cả báo giá
-  getAll: async () => {
-    return await quote.getAll(); // Gọi model để lấy dữ liệu từ cơ sở dữ liệu
+  // Tạo quote mới
+  create: async (opportunity_id, note = null) => {
+    try {
+      // Kiểm tra opportunity tồn tại
+      const opportunity = await opportunities.getById(opportunity_id);
+      if (!opportunity) {
+        throw new Error('Opportunity not found');
+      }
+
+      // Kiểm tra đã có quote chưa
+      const existingQuote = await quote.getByOpportunityId(opportunity_id);
+      if (existingQuote) {
+        // Nếu đã có quote, trả về quote hiện có thay vì throw error
+        return existingQuote;
+      }
+
+      // Tạo quote mới
+      const newQuote = await quote.create(opportunity_id, note);
+
+      // Cập nhật trạng thái opportunity thành 'quote_pending'
+      // await opportunities.update(opportunity_id, { status: 'quoted' });
+
+      return newQuote;
+    } catch (error) {
+      throw error;
+    }
   },
 
-  // Lấy báo giá theo ID
+  // Lấy tất cả quotes
+  getAll: async (filters) => {
+    return await quote.getAll(filters);
+  },
+
+  // Lấy quote theo ID
   getById: async (id) => {
-    return await quote.getById(id); // Gọi model để lấy dữ liệu theo ID
+    const quoteData = await quote.getById(id);
+    if (!quoteData) {
+      throw new Error('Quote not found');
+    }
+    return quoteData;
   },
 
-  // Tạo mới một báo giá
-  create: async (opportunity_service_ids, status = 'pending', comment = '') => {
-    return await quote.create(opportunity_service_ids, status, comment); // Gọi model để tạo báo giá mới
+  // Lấy quote theo opportunity_id
+  getByOpportunityId: async (opportunityId) => {
+    return await quote.getByOpportunityId(opportunityId);
   },
 
-  // Cập nhật trạng thái báo giá
-  update: async (id, status, comment) => {
-    return await quote.update(id, status, comment); // Gọi model để cập nhật báo giá
+  // Cập nhật quote
+  update: async (id, data) => {
+    const existing = await quote.getById(id);
+    if (!existing) {
+      throw new Error('Quote not found');
+    }
+
+    return await quote.update(id, data);
   },
 
-  // Xóa báo giá
+  reject: async (id, data) => {
+    const existing = await quote.getById(id);
+    if (!existing) {
+      throw new Error('Quote not found');
+    }else{
+      await opportunities.update(existing.opportunity_id, { status: 'quote_rejected' });
+    }  
+
+    return await quote.update(id, data);
+  },
+
+  // Xóa quote
   delete: async (id) => {
-    return await quote.delete(id); // Gọi model để xóa báo giá
-  },
-};
+    const existing = await quote.getById(id);
+    if (!existing) {
+      throw new Error('Quote not found');
+    }
 
-export default quoteService;
+    const result = await quote.delete(id);
+    if (!result) {
+      throw new Error('Failed to delete quote');
+    }
+
+    return true;
+  }
+};
+export default quoteService

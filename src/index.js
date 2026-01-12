@@ -29,6 +29,7 @@ import jobReviewRoute from './routes/jobReviewRoute.js';
 import serviceJobCriteriaRoute from './routes/serviceJobCriteriaRoute.js';
 import acceptanceRoute from './routes/acceptanceRoute.js';
 import quoteRoute from './routes/quoteRoute.js';
+import notificationRoute from './routes/notificationRoute.js';
 
 const app = express()
 const port = process.env.PORT || 3000
@@ -38,7 +39,7 @@ app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
 
-app.use('/api/auth', authRoute)
+app.use('/api/auth',     authRoute)
 app.use('/api/opportunity', auth, opportunityRoute)
 app.use('/api/user',auth,userRoute)
 app.use('/api/customer',auth,customerRoute)
@@ -65,6 +66,7 @@ app.use('/api/job-review',auth, jobReviewRoute);
 app.use('/api/service-job-criteria',auth, serviceJobCriteriaRoute);
 app.use('/api/acceptance',auth,  acceptanceRoute);
 app.use('/api/quote',auth, quoteRoute );
+app.use('/api/notification',auth, notificationRoute);
 
 app.get('/',(req, res) =>{
     res.status(200).send("Hello word")

@@ -1,22 +1,29 @@
-// src/routes/quoteRoutes.js
 import express from 'express';
+import quoteController from '../controllers/quoteController.js';
 
-import quoteController from '../controllers/quoteController.js'
+const router = express.Router();
 
-const router = express.Router()
-// Lấy tất cả báo giá
+// Lấy tất cả quotes (có thể filter theo status, opportunity_id)
 router.get('/', quoteController.getAll);
 
-// Lấy báo giá theo ID
+// Lấy quote theo opportunity_id
+router.get('/opportunity/:opportunityId', quoteController.getByOpportunityId);
+
+// Lấy quote theo ID
 router.get('/:id', quoteController.getById);
 
-// Tạo mới một báo giá
+// Tạo quote mới
 router.post('/', quoteController.create);
 
-// Cập nhật trạng thái báo giá
+// Cập nhật quote
 router.put('/:id', quoteController.update);
 
-// Xóa báo giá
+// Xóa quote
 router.delete('/:id', quoteController.delete);
 
-export default router
+
+router.patch('/:id/approve', quoteController.approve);
+router.patch('/:id/reject', quoteController.reject);
+
+
+export default router;

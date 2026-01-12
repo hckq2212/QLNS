@@ -1,65 +1,100 @@
 import db from '../config/db.js';
 
 const quote = {
-  // Lấy tất cả báo giá
-  getAll: async () => {
-    const result = await db.query('SELECT id, status, comment, approved_at, approved_by FROM "quote" ORDER BY id');
-    return result.rows; // Trả về danh sách các báo giá
-  },
-
-  // Lấy báo giá theo ID
-  getById: async (id) => {
-    const result = await db.query('SELECT id, status, comment, approved_at, approved_by FROM "quote" WHERE id = $1', [id]);
-    return result.rows[0]; // Trả về báo giá theo ID
-  },
-
-  // Tạo mới một báo giá
-  create: async (opportunity_service_ids, status, comment) => {
-    const client = await db.connect();
-    try {
-      await client.query('BEGIN');
-      
-      // Tạo quote
-      const quoteResult = await client.query(
-        'INSERT INTO "quote" (status, comment) VALUES ($1, $2) RETURNING *',
-        [status, comment]
-      );
-      const quote = quoteResult.rows[0];
-      
-      // Tạo các liên kết trong bảng quote_opportunity_service
-      if (Array.isArray(opportunity_service_ids) && opportunity_service_ids.length > 0) {
-        for (const oppServiceId of opportunity_service_ids) {
-          await client.query(
-            'INSERT INTO quote_opportunity_service (quote_id, opportunity_service_id) VALUES ($1, $2)',
-            [quote.id, oppServiceId]
-          );
-        }
-      }
-      
-      await client.query('COMMIT');
-      return quote;
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
-  },
-
-  // Cập nhật trạng thái báo giá
-  update: async (id, status, comment) => {
+  // Tạo quote mới
+  create: async (opportunity_id, note = null) => {
     const result = await db.query(
-      'UPDATE "quote" SET status = $1, comment = $2 WHERE id = $3 RETURNING *',
-      [status, comment, id]
+      `INSERT INTO quote (opportunity_id, status, note) 
+       VALUES ($1, 'pending', $2) 
+       RETURNING *`,
+      [opportunity_id, note]
     );
-    return result.rows[0]; // Trả về báo giá đã được cập nhật
+    return result.rows[0];
   },
 
-  // Xóa báo giá
-  delete: async (id) => {
-    const result = await db.query('DELETE FROM "quote" WHERE id = $1 RETURNING *', [id]);
-    return result.rowCount > 0; // Nếu xóa thành công, trả về true
+  // Kiểm tra quote đã tồn tại cho opportunity
+  checkExistsByOpportunityId: async (opportunityId) => {
+    const result = await db.query(
+      'SELECT id FROM quote WHERE opportunity_id = $1 LIMIT 1',
+      [opportunityId]
+    );
+    return result.rows.length > 0;
   },
+
+  // Lấy tất cả quotes
+  getAll: async (filters = {}) => {
+    let query = 'SELECT * FROM quote WHERE 1=1';
+    const values = [];
+    let i = 1;
+
+    if (filters.status) {
+      query += ` AND status = $${i++}`;
+      values.push(filters.status);
+    }
+
+    if (filters.opportunity_id) {
+      query += ` AND opportunity_id = $${i++}`;
+      values.push(filters.opportunity_id);
+    }
+
+    query += ' ORDER BY id DESC';
+
+    const result = await db.query(query, values);
+    return result.rows;
+  },
+
+  // Lấy quote theo ID
+  getById: async (id) => {
+    const result = await db.query(
+      'SELECT * FROM quote WHERE id = $1',
+      [id]
+    );
+    return result.rows[0];
+  },
+
+  // Lấy quote theo opportunity_id
+  getByOpportunityId: async (opportunityId) => {
+    const result = await db.query(
+      'SELECT * FROM quote WHERE opportunity_id = $1',
+      [opportunityId]
+    );
+    return result.rows[0];
+  },
+
+  // Cập nhật quote
+  update: async (id, data) => {
+    const fields = [];
+    const values = [];
+    let i = 1;
+
+    if (data.status !== undefined) {
+      fields.push(`status = $${i++}`);
+      values.push(data.status);
+    }
+
+    if (data.note !== undefined) {
+      fields.push(`note = $${i++}`);
+      values.push(data.note);
+    }
+
+    if (fields.length === 0) return null;
+
+    values.push(id);
+    const result = await db.query(
+      `UPDATE quote SET ${fields.join(', ')} WHERE id = $${i} RETURNING *`,
+      values
+    );
+    return result.rows[0];
+  },
+
+  // Xóa quote
+  delete: async (id) => {
+    const result = await db.query(
+      'DELETE FROM quote WHERE id = $1 RETURNING *',
+      [id]
+    );
+    return result.rowCount > 0;
+  }
 };
 
 export default quote;

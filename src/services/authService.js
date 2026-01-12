@@ -8,7 +8,7 @@ const saltRounds = Number(process.env.SALT_ROUNDS) || 10;
 function createToken(user){
     const payload = { id: user.id, name: user.username, role_id: user.role_id }
     const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET_KEY, {
-        expiresIn: '1h'
+        expiresIn: '1d'
     })
     const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET_KEY, {
         expiresIn: '7d'
