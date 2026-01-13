@@ -61,7 +61,16 @@ const userController = {
         }catch(err){
             console.error('Lỗi khi lấy thông tin cá nhân', err)
         }
-    }
+    },
+    getJobByUserId : async(req, res) => {
+        try{
+            const id = req.params.id
+            const result = await userService.getJobByUserId(id);
+            return res.json(result)
+        }catch(err){
+            console.error('Lỗi khi lấy thông tin cá nhân', err)
+        }
+    },
 
 };
 export default userController;

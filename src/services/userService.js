@@ -24,7 +24,11 @@ const userService = {
 	getPersonalInfo: async(id) => {
 		const result = await users.getPersonalInfo(id);
 		return result
-	}
+	},
+	getJobByUserId: async(id) => {
+		const result = await users.getJobByUserId(id);
+		return result
+	},
 }
 
 export default userService

@@ -23,6 +23,13 @@ const users = {
     );
     return result.rows[0];
   },
+    async getJobByUserId(id) {
+    const result = await db.query(
+      `SELECT name, priority, deadline, contract_id                                                                                               From job WHERE 	assigned_id = $1 and assigned_type = 'user'`,
+      [id]
+    );
+    return result.rows[0];
+  },
 
   async getUserByEmail(email) {
     if (!email) return null;
