@@ -33,13 +33,19 @@ import notificationRoute from './routes/notificationRoute.js';
 
 const app = express()
 const port = process.env.PORT || 3000
-app.use(cors())
+// app.use(cors())
+app.use(cors({
+  origin: ["https://qlns-gui.vercel.app"],
+  credentials: true,
+  methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization"],
+}));
 app.use(express.json())
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
 
-app.use('/api/auth',     authRoute)
+app.use('/api/auth',authRoute)
 app.use('/api/opportunity', auth, opportunityRoute)
 app.use('/api/user',auth,userRoute)
 app.use('/api/customer',auth,customerRoute)
