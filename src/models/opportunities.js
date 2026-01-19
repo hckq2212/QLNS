@@ -17,13 +17,12 @@ const opportunities = {
         const result = await db.query('SELECT * FROM opportunity WHERE id = $1', [id]);
         return result.rows[0];
     },
-
-    async create({expected_revenue, expected_budget, success_rate, expected_end_date, priority, name, region, expected_price = null, description = null, created_by = null, status = 'waiting_bod_approval',implementation_months,estimated_start_date }) {
+    async create({expected_revenue, expected_budget, success_rate, expected_end_date, priority, name, region, expected_price = null, description = null, created_by = null, status = 'waiting_bod_approval',implementation_months,estimated_start_date, business_field = null }) {
         try {
             const result = await db.query(
-                `INSERT INTO opportunity (expected_revenue, expected_budget, success_rate, expected_end_date, priority, name, region, expected_price, description, created_by, status,implementation_months, estimated_start_date)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
-                [expected_revenue, expected_budget, success_rate, expected_end_date, priority, name, region, expected_price, description, created_by, status,implementation_months, estimated_start_date]
+                `INSERT INTO opportunity (expected_revenue, expected_budget, success_rate, expected_end_date, priority, name, region, expected_price, description, created_by, status,implementation_months, estimated_start_date, business_field)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
+                [expected_revenue, expected_budget, success_rate, expected_end_date, priority, name, region, expected_price, description, created_by, status,implementation_months, estimated_start_date, business_field]
             );
             return result.rows[0];
         } catch (err) {

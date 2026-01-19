@@ -30,6 +30,7 @@ import serviceJobCriteriaRoute from './routes/serviceJobCriteriaRoute.js';
 import acceptanceRoute from './routes/acceptanceRoute.js';
 import quoteRoute from './routes/quoteRoute.js';
 import notificationRoute from './routes/notificationRoute.js';
+import businessFieldRoute from './routes/businessFieldRoute.js';
 
 const app = express()
 const port = process.env.PORT || 3000
@@ -73,6 +74,7 @@ app.use('/api/service-job-criteria',auth, serviceJobCriteriaRoute);
 app.use('/api/acceptance',auth,  acceptanceRoute);
 app.use('/api/quote',auth, quoteRoute );
 app.use('/api/notification',auth, notificationRoute);
+app.use('/api/business-fields',auth, businessFieldRoute);
 
 app.get('/',(req, res) =>{
     res.status(200).send("Hello word")
