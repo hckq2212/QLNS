@@ -18,7 +18,7 @@ const opportunityService = {
         return await opportunities.getById(id);
     },
 
-createOpportunity: async (payload, files = []) => {
+createOpportunity: async (payload, files = [], attachmentUrls = []) => {
     if (!payload) throw new Error('Thiếu thông tin để tạo cơ hội');
 
 // normalize services coming from payload (works for JSON body or FormData where services is JSON string)
@@ -61,8 +61,10 @@ services = services.map((s, i) => {
 
         const opportunity_id = opportunityCreateResult.id;
 
-        // 2️ Upload files to Cloudinary and prepare the JSON for storing in the database
+        // 2️ Prepare attachments array
         const attachments = [];
+        
+        // 2a. Upload files to Cloudinary
         for (const file of files) {
             if (file && file.buffer) {
                 const uploadResult = await new Promise((resolve, reject) => {
@@ -83,13 +85,28 @@ services = services.map((s, i) => {
                 attachments.push({
                     name: file.originalname,
                     url: uploadResult.secure_url,
-                    type: file.mimetype // File MIME type
+                    type: file.mimetype, // File MIME type
+                    source: 'upload' // Đánh dấu là file upload
                 });
+            }
+        }
+        
+        // 2b. Add URL attachments (không cần upload)
+        if (Array.isArray(attachmentUrls)) {
+            for (const urlItem of attachmentUrls) {
+                if (urlItem && urlItem.url) {
+                    attachments.push({
+                        name: urlItem.name || urlItem.url.split('/').pop() || 'Link',
+                        url: urlItem.url,
+                        type: urlItem.type || 'link',
+                        source: 'url' // Đánh dấu là URL trực tiếp
+                    });
+                }
             }
         }
 
         // 3️ Save the JSON array in the opportunity table
-        if (attachments.length) {
+        if (attachments.length > 0) {
             await db.query(
                 `UPDATE opportunity SET attachments = $1 WHERE id = $2`,
                 [JSON.stringify(attachments), opportunity_id] // Convert the array to JSON string

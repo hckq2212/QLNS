@@ -41,16 +41,29 @@ create: async (req, res) => {
         const payload = req.body || {};
         if (req.user && req.user.id) payload.created_by = req.user.id;
 
-        console.log(payload)
-        if (req.files && req.files.length > 0) {
-            // If files are uploaded, process them
-            const created = await opportunityService.createOpportunity(payload, req.files);
-            return res.status(201).json(created);
-        } else {
-            // Handle the case when no files are uploaded
-            const created = await opportunityService.createOpportunity(payload);
-            return res.status(201).json(created);
+        console.log(payload);
+        
+        // Parse attachments if it's a JSON string (from FormData)
+        let attachmentUrls = [];
+        if (payload.attachments) {
+            if (typeof payload.attachments === 'string') {
+                try {
+                    attachmentUrls = JSON.parse(payload.attachments);
+                } catch (err) {
+                    console.error('Error parsing attachments:', err);
+                }
+            } else if (Array.isArray(payload.attachments)) {
+                attachmentUrls = payload.attachments;
+            }
         }
+        
+        // Always pass files and urls to service
+        const created = await opportunityService.createOpportunity(
+            payload, 
+            req.files || [], 
+            attachmentUrls
+        );
+        return res.status(201).json(created);
     } catch (err) {
         console.error('create error:', err);
         return res.status(400).json({ error: err.message || 'Bad request' });
