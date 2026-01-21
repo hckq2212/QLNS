@@ -145,6 +145,16 @@ const jobController = {
             console.error('Lỗi khi get công việc', error)
         }
     },
+    getJobByUserId: async (req, res) => {
+        const userId = req.params.userId;
+        try {
+            const result = await jobService.getJobByUserId(userId);
+            return res.status(200).json(result);
+        } catch (error) {
+            console.error('Lỗi khi get công việc theo userId:', error);
+            return res.status(500).json({ error: 'Internal server error' });
+        }
+    },
     finish:async (req, res) => {
          try {
             const id = req.params.id;

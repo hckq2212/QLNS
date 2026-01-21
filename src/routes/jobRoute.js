@@ -15,6 +15,7 @@ jobRoute.post('/:id/review', jobReviewController.createReview);
 
 jobRoute.get('/', jobController.getAll);
 jobRoute.get('/me', jobController.getMyJob)
+jobRoute.get('/user/:userId', jobController.getJobByUserId)
 jobRoute.get('/project/:projectId', jobController.getByProject)
 // accept up to 5 attachments when assigning from multiple possible field names
 jobRoute.patch('/:id/assign', upload.fields([

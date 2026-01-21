@@ -80,6 +80,17 @@ const jobs = {
             [id]
         )
         return result.rows;
+    },
+    getJobByUserId: async (userId) => {
+        const result = await db.query(
+            `
+            SELECT * FROM job
+            WHERE assigned_id = $1 
+            AND assigned_type = 'user'
+            `,
+            [userId]
+        )
+        return result.rows;
     }
 }
 

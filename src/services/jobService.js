@@ -32,6 +32,10 @@ const jobService = {
         const result = await jobs.getMyJob(id);
         return result;
     },
+    getJobByUserId: async(userId) => {
+        const result = await jobs.getJobByUserId(userId);
+        return result;
+    },
     finish: async (jobId, newEvidence = [], userId = null) => {
   const job = await jobs.getById(jobId);
   if (!job) throw new Error('Job không tồn tại');
