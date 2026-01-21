@@ -40,9 +40,6 @@ create: async (req, res) => {
     try {
         const payload = req.body || {};
         if (req.user && req.user.id) payload.created_by = req.user.id;
-
-        console.log(payload);
-        
         // Parse attachments if it's a JSON string (from FormData)
         let attachmentUrls = [];
         if (payload.attachments) {

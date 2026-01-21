@@ -80,8 +80,7 @@ app.get('/',(req, res) =>{
     res.status(200).send("Hello word")
 })
 
-app.listen( port, ()=>{
+app.listen( port, () => {
     console.log(`Server is running on ${port}`)
     console.log(new Date().toISOString());
-
 })
