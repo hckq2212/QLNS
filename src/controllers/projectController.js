@@ -5,9 +5,10 @@ const projectController = {
     list: async (req, res) => {
         try {
             const result = await projectService.list();
+            console.log('[GET] Lấy danh sách dự án thành công');
             return res.json(result);
         } catch (err) {
-            console.error('project list error', err);
+            console.error('[GET] Lấy danh sách dự án - LỖI:', err.message || err);
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
@@ -17,9 +18,10 @@ const projectController = {
             const id = req.params.id;
             const p = await projectService.getById(id);
             if (!p) return res.status(404).json({ error: 'Project not found' });
+            console.log(`[GET] Lấy chi tiết dự án ID ${id} thành công`);
             return res.json(p);
         } catch (err) {
-            console.error('project getById error', err);
+            console.error(`[GET] Lấy chi tiết dự án ID ${id} - LỖI:`, err.message || err);
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
@@ -27,9 +29,11 @@ const projectController = {
         try{
             const contractId = req.params.contractId;
             const result = await projectService.getByContract(contractId);
+            console.log(`[GET] Lấy dự án theo hợp đồng ID ${contractId} thành công`);
             return res.json(result)
         }catch(err){
-            console.error(err)
+            console.error(`[GET] Lấy dự án theo hợp đồng ID ${contractId} - LỖI:`, err.message || err);
+            return res.status(500).json({ error: 'Internal server error' });
         }
     },
 
@@ -38,9 +42,10 @@ const projectController = {
             const body = req.body || {};
             const creatorId = req.user && req.user.id;
             const created = await projectService.createProjectForContract(body.contract_id, body.name, body.description, body.start_date || null, creatorId);
+            console.log('[POST] Tạo dự án thành công');
             return res.status(201).json(created);
         } catch (err) {
-            console.error('project create error', err);
+            console.error('[POST] Tạo dự án - LỖI:', err.message || err);
             return res.status(400).json({ error: err.message || 'Bad request' });
         }
     },
@@ -49,9 +54,11 @@ const projectController = {
             const id = req.params.id;
             const teamId = req.body.teamId
             const result = await projectService.assignTeam(id,teamId);
+            console.log(`[POST] Gán team cho dự án ID ${id} thành công`);
             return res.json(result)
         }catch(err){
-            console.log("Lỗi khi assign team", err)
+            console.error(`[POST] Gán team cho dự án ID ${id} - LỖI:`, err.message || err);
+            return res.status(500).json({ error: 'Internal server error' });
         }
     },
     update: async (req, res) => {
@@ -60,9 +67,10 @@ const projectController = {
 
         try {
             const result = await projectService.update(id, payload);
+            console.log(`[PATCH] Cập nhật dự án ID ${id} thành công`);
             res.status(200).json({ message: 'Cập nhật thành công', project: result });
         } catch (err) {
-            console.error('Lỗi khi update Project', err && (err.stack || err.message) || err);
+            console.error(`[PATCH] Cập nhật dự án ID ${id} - LỖI:`, err.message || err);
             return res.status(500).json({ error: err.message || 'Server error' });
         }
     },
@@ -70,9 +78,11 @@ const projectController = {
         try{
             const status = req.params.status ;
             const result = await projectService.getByStatus(status);
+            console.log(`[GET] Lấy dự án theo trạng thái ${status} thành công`);
             return res.json(result)
         }catch(err){
-            console.error('Lỗi khi get By Status', err)
+            console.error(`[GET] Lấy dự án theo trạng thái ${status} - LỖI:`, err.message || err);
+            return res.status(500).json({ error: 'Internal server error' });
         }
     },
 
@@ -81,9 +91,10 @@ const projectController = {
         try {
             const projectId = req.params.id;
             const updated = await projectService.closeProject(projectId);
+            console.log(`[POST] Đóng dự án ID ${projectId} thành công`);
             return res.json(updated);
         } catch (err) {
-            console.error('project close error', err);
+            console.error(`[POST] Đóng dự án ID ${projectId} - LỖI:`, err.message || err);
             return res.status(400).json({ error: err.message || 'Bad request' });
         }
     }
@@ -98,9 +109,10 @@ const projectController = {
             // delegate to contractService which updates lead_ack_at
             const result = await projectService.ackProject(projectId, user.id);
             if (!result) return res.status(404).json({ error: 'Project not found' });
+            console.log(`[POST] Xác nhận dự án ID ${projectId} thành công`);
             return res.json(result);
         } catch (err) {
-            console.error('project ack error', err);
+            console.error(`[POST] Xác nhận dự án ID ${projectId} - LỖI:`, err.message || err);
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
@@ -109,9 +121,10 @@ const projectController = {
       const { id } = req.params; 
       const userId = req.user?.id || req.body.user_id; 
       const result = await projectService.requestReview(id, userId);
+      console.log(`[POST] Yêu cầu đánh giá dự án ID ${id} thành công`);
       return res.status(201).json(result);
     } catch (err) {
-      console.error('requestReview error:', err);
+      console.error(`[POST] Yêu cầu đánh giá dự án ID ${id} - LỖI:`, err.message || err);
       return res.status(400).json({ error: err.message });
     }
   }

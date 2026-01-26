@@ -12,9 +12,10 @@ const quoteController = {
       if (opportunity_id) filters.opportunity_id = Number(opportunity_id);
 
       const quotes = await quoteService.getAll(filters);
+      console.log('[GET] Lấy danh sách báo giá thành công');
       return res.json(quotes);
     } catch (err) {
-      console.error('quote.getAll error', err);
+      console.error('[GET] Lấy danh sách báo giá - LỖI:', err.message || err);
       return res.status(500).json({ error: 'Internal server error' });
     }
   },
@@ -23,9 +24,10 @@ const quoteController = {
   getById: async (req, res) => {
     try {
       const quote = await quoteService.getById(req.params.id);
+      console.log(`[GET] Lấy thông tin báo giá ID ${req.params.id} thành công`);
       return res.json(quote);
     } catch (err) {
-      console.error('quote.getById error', err);
+      console.error(`[GET] Lấy thông tin báo giá ID ${req.params.id} - LỖI:`, err.message || err);
       if (err.message === 'Quote not found') {
         return res.status(404).json({ error: err.message });
       }
@@ -40,9 +42,10 @@ const quoteController = {
       if (!quote) {
         return res.status(404).json({ error: 'Quote not found' });
       }
+      console.log(`[GET] Lấy báo giá theo cơ hội ID ${req.params.opportunityId} thành công`);
       return res.json(quote);
     } catch (err) {
-      console.error('quote.getByOpportunityId error', err);
+      console.error(`[GET] Lấy báo giá theo cơ hội ID ${req.params.opportunityId} - LỖI:`, err.message || err);
       return res.status(500).json({ error: 'Internal server error' });
     }
   },
@@ -57,9 +60,10 @@ const quoteController = {
       }
 
       const quote = await quoteService.create(Number(opportunity_id), note);
+      console.log('[POST] Tạo báo giá thành công');
       return res.status(201).json(quote);
     } catch (err) {
-      console.error('quote.create error', err);
+      console.error('[POST] Tạo báo giá - LỖI:', err.message || err);
       if (err.message === 'Opportunity not found') {
         return res.status(404).json({ error: err.message });
       }
@@ -91,9 +95,10 @@ const quoteController = {
   delete: async (req, res) => {
     try {
       await quoteService.delete(req.params.id);
+      console.log(`[DELETE] Xóa báo giá ID ${req.params.id} thành công`);
       return res.status(204).send();
     } catch (err) {
-      console.error('quote.delete error', err);
+      console.error(`[DELETE] Xóa báo giá ID ${req.params.id} - LỖI:`, err.message || err);
       if (err.message === 'Quote not found') {
         return res.status(404).json({ error: err.message });
       }
@@ -132,9 +137,10 @@ const quoteController = {
       if (note !== undefined || note == null)  updateData.note = note;
 
       const quote = await quoteService.reject(req.params.id, updateData);
+      console.log(`[POST] Từ chối báo giá ID ${req.params.id} thành công`);
       return res.json(quote);
     } catch (err) {
-      console.error('quote.update error', err);
+      console.error(`[PUT] Cập nhật báo giá ID ${req.params.id} - LỖI:`, err.message || err);
       if (err.message === 'Quote not found') {
         return res.status(404).json({ error: err.message });
       }

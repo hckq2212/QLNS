@@ -19,23 +19,26 @@ getAll: async (req, res) => {
       // delegate to a service method that fetches many contracts in one query
       // implement contractService.getByIds(ids) to return an array of contract objects
       const contracts = await contractService.getByIds(ids);
+      console.log(`[GET] Lấy danh sách hợp đồng theo IDs thành công`);
       return res.json(contracts); // array or { items: [...] } both ok (client handles)
     }
 
     // no ids param -> return full list as before
     const result = await contractService.getAll();
+    console.log('[GET] Lấy tất cả hợp đồng thành công');
     return res.json(result);
   } catch (err) {
-    console.error('getAll contracts error:', err);
+    console.error('[GET] Lấy tất cả hợp đồng - LỖI:', err.message || err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 },
     getAllPending: async (req, res) => {
         try {
             const result = await contractService.getAllPending();
+            console.log('[GET] Lấy tất cả hợp đồng chờ duyệt thành công');
             return res.json(result);
         }catch(err){
-            console.error('getAllPending contracts error:', err);
+            console.error('[GET] Lấy tất cả hợp đồng chờ duyệt - LỖI:', err.message || err);
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
@@ -45,9 +48,10 @@ getAll: async (req, res) => {
         try{   
             const result = await contractService.getById(contractId);
             if (!result) return res.status(404).json({ error: 'Contract not found' });
+            console.log(`[GET] Lấy chi tiết hợp đồng ID ${contractId} thành công`);
             return res.json(result);
         }catch(err){
-            console.error('getById contract error:', err);
+            console.error(`[GET] Lấy chi tiết hợp đồng ID ${contractId} - LỖI:`, err.message || err);
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
@@ -57,9 +61,10 @@ getAll: async (req, res) => {
 
         try {
             const result = await contractService.update(id, payload);
+            console.log(`[PATCH] Cập nhật hợp đồng ID ${id} thành công`);
             res.status(200).json({ message: 'Cập nhật thành công', contract: result });
         } catch (err) {
-            console.error('Lỗi khi update contract', err && (err.stack || err.message) || err);
+            console.error(`[PATCH] Cập nhật hợp đồng ID ${id} - LỖI:`, err.message || err);
             return res.status(500).json({ error: err.message || 'Server error' });
         }
     },
@@ -89,9 +94,10 @@ getAll: async (req, res) => {
             body.customerTemp,
             creatorId
             );
+            console.log(`[POST] Tạo hợp đồng từ cơ hội ID ${opportunityId} thành công`);
             return res.status(201).json(result);
         } catch (err) {
-            console.error('create contract error:', err);
+            console.error(`[POST] Tạo hợp đồng từ cơ hội ID ${opportunityId} - LỖI:`, err.message || err);
             return res.status(400).json({ error: err.message || 'Bad request' });
         }
     },
@@ -103,10 +109,12 @@ getAll: async (req, res) => {
         try{
             const result = await contractService.approveByBOD(id, status, approverId)
             if(result){
+                console.log(`[POST] BOD duyệt hợp đồng ID ${id} thành công`);
                 return res.status(200).send(result)
             }
         }catch(err){
-            console.error(err)
+            console.error(`[POST] BOD duyệt hợp đồng ID ${id} - LỖI:`, err.message || err);
+            return res.status(500).json({ error: 'Internal server error' });
         }
     },
 
@@ -142,6 +150,7 @@ uploadProposalContract: async (req, res) => {
     // chỉ lưu public_id
     await contractService.uploadProposalContract(uploadResult.public_id, contractId);
 
+    console.log(`[PATCH] Upload hợp đồng đề xuất cho hợp đồng ID ${contractId} thành công`);
     return res.status(200).json({
       message: 'Upload thành công',
       public_id: uploadResult.public_id,
@@ -149,7 +158,7 @@ uploadProposalContract: async (req, res) => {
       resource_type: uploadResult.resource_type,
     });
   } catch (err) {
-    console.error('uploadProposalContract error:', err?.stack || err?.message || err);
+    console.error(`[PATCH] Upload hợp đồng đề xuất cho hợp đồng ID ${contractId} - LỖI:`, err.message || err);
     return res.status(500).json({ error: err?.message || 'Upload failed' });
   }
 },
@@ -205,6 +214,7 @@ sign: async (req, res) => {
     // vd cột: signed_contract_public_id
     await contractService.signContract(uploadResult.public_id, id);
 
+    console.log(`[PATCH] Ký hợp đồng ID ${id} thành công`);
     return res.status(200).json({
       message: 'Upload signed contract thành công',
       public_id: uploadResult.public_id,
@@ -212,7 +222,7 @@ sign: async (req, res) => {
       resource_type: uploadResult.resource_type,
     });
   } catch (err) {
-    console.error('Sign contract error:', err?.stack || err?.message || err);
+    console.error(`[PATCH] Ký hợp đồng ID ${id} - LỖI:`, err.message || err);
     return res.status(500).json({ error: err?.message || 'Upload failed' });
   }
 },
@@ -227,9 +237,10 @@ sign: async (req, res) => {
             // update project lead_ack_at
             const result = await contractService.ackProject(projectId, user.id);
             if (!result) return res.status(404).json({ error: 'Project not found' });
+            console.log(`[POST] Xác nhận dự án ID ${projectId} thành công`);
             return res.json(result);
         } catch (err) {
-            console.error('ackProject err', err);
+            console.error(`[POST] Xác nhận dự án ID ${projectId} - LỖI:`, err.message || err);
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
@@ -239,17 +250,20 @@ sign: async (req, res) => {
         const status = "hr_approved"
         try{
             const result = await contractService.updateStatus(status, approverId, id)
+            console.log(`[PATCH] HR xác nhận hợp đồng ID ${id} thành công`);
         }catch(err){
-            console.error(err)
+            console.error(`[PATCH] HR xác nhận hợp đồng ID ${id} - LỖI:`, err.message || err);
+            return res.status(500).json({ error: 'Internal server error' });
         }
     },
     getServices: async (req, res) => {
         try {
             const contractId = req.params.id;
             const rows = await contractService.getServices(contractId);
+            console.log(`[GET] Lấy danh sách dịch vụ của hợp đồng ID ${contractId} thành công`);
             return res.json(rows);
         } catch (err) {
-            console.error('getServices err', err);
+            console.error(`[GET] Lấy danh sách dịch vụ của hợp đồng ID ${contractId} - LỖI:`, err.message || err);
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
@@ -257,9 +271,11 @@ sign: async (req, res) => {
         try{
             const status =  req.query.status || req.params.status ;
             const result = await contractService.getByStatus(status);
+            console.log(`[GET] Lấy hợp đồng theo trạng thái ${status} thành công`);
             return res.json(result)
         }catch(err){
-            console.error('Lỗi khi get bởi status')
+            console.error(`[GET] Lấy hợp đồng theo trạng thái - LỖI:`, err.message || err);
+            return res.status(500).json({ error: 'Internal server error' });
         }
     },
   getProposalContractUrl: async (req, res) => {
@@ -277,10 +293,10 @@ sign: async (req, res) => {
     });
 
 
-
+    console.log(`[GET] Lấy URL hợp đồng đề xuất cho ID ${id} thành công`);
     return  res.json({ url });
   } catch (err) {
-    console.error('getProposalContractUrl error:', err?.stack || err?.message || err);
+    console.error(`[GET] Lấy URL hợp đồng đề xuất cho ID ${id} - LỖI:`, err.message || err);
     return res.status(500).json({ error: 'Cannot generate file URL' });
   }
 },
@@ -299,10 +315,10 @@ getSignedContractUrl: async (req, res) => {
     });
 
 
-
+    console.log(`[GET] Lấy URL hợp đồng đã ký cho ID ${id} thành công`);
     return  res.json({ url });
   } catch (err) {
-    console.error('getProposalContractUrl error:', err?.stack || err?.message || err);
+    console.error(`[GET] Lấy URL hợp đồng đã ký cho ID ${id} - LỖI:`, err.message || err);
     return res.status(500).json({ error: 'Cannot generate file URL' });
   }
 }

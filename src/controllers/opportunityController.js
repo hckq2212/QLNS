@@ -7,9 +7,10 @@ const opportunityController = {
     getAllOpportunities: async (req, res) => {
         try {
             const result = await opportunityService.getAllOpportunities();
+            console.log('[GET] Lấy danh sách tất cả cơ hội thành công');
             return res.json(result);
         } catch (err) {
-            console.error('getAllOpportunities error:', err);
+            console.error('[GET] Lấy danh sách tất cả cơ hội - LỖI:', err.message || err);
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
@@ -17,9 +18,10 @@ const opportunityController = {
         const status = req.params.status || req.query.status
         try {
             const result = await opportunityService.getByStatus(status);
+            console.log(`[GET] Lấy cơ hội theo trạng thái ${status} thành công`);
             return res.json(result);
         } catch (err) {
-            console.error('getAllOpportunities error:', err);
+            console.error(`[GET] Lấy cơ hội theo trạng thái ${status} - LỖI:`, err.message || err);
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
@@ -29,9 +31,10 @@ const opportunityController = {
             const id = req.params.id;
             const op = await opportunityService.getOpportunityById(id);
             if (!op) return res.status(404).json({ error: 'Opportunity not found' });
+            console.log(`[GET] Lấy chi tiết cơ hội ID ${id} thành công`);
             return res.json(op);
         } catch (err) {
-            console.error('getById error:', err);
+            console.error(`[GET] Lấy chi tiết cơ hội ID ${id} - LỖI:`, err.message || err);
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
@@ -60,9 +63,10 @@ create: async (req, res) => {
             req.files || [], 
             attachmentUrls
         );
+        console.log('[POST] Tạo cơ hội thành công');
         return res.status(201).json(created);
     } catch (err) {
-        console.error('create error:', err);
+        console.error('[POST] Tạo cơ hội - LỖI:', err.message || err);
         return res.status(400).json({ error: err.message || 'Bad request' });
     }
 },
@@ -74,9 +78,10 @@ create: async (req, res) => {
             const fields = req.body || {};
             const updated = await opportunityService.updateOpportunity(id, fields);
             if (!updated) return res.status(404).json({ error: 'Không thấy cơ hội hoặc không có thông tin để cập nhật' });
+            console.log(`[PATCH] Cập nhật cơ hội ID ${id} thành công`);
             return res.json(updated);
         } catch (err) {
-            console.error('update error:', err);
+            console.error(`[PATCH] Cập nhật cơ hội ID ${id} - LỖI:`, err.message || err);
             return res.status(400).json({ error: err.message || 'Bad request' });
         }
     },
@@ -86,9 +91,10 @@ create: async (req, res) => {
             const id = req.params.id;
             const deleted = await opportunityService.deleteOpportunity(id);
             if (!deleted) return res.status(404).json({ error: 'Opportunity not found' });
+            console.log(`[DELETE] Xóa cơ hội ID ${id} thành công`);
             return res.json({ message: 'Deleted', item: deleted });
         } catch (err) {
-            console.error('remove error:', err);
+            console.error(`[DELETE] Xóa cơ hội ID ${id} - LỖI:`, err.message || err);
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
@@ -100,9 +106,10 @@ create: async (req, res) => {
             const approverId =  req.user.id;
             if (!approverId) return res.status(401).json({ error: 'Unauthorized' });
             const result = await opportunityService.approveOpportunity(id, approverId);
+            console.log(`[POST] Duyệt cơ hội ID ${id} thành công`);
             return res.json(result);
         } catch (err) {
-            console.error('Lỗi khi duyệt cơ hội:', err);
+            console.error(`[POST] Duyệt cơ hội ID ${id} - LỖI:`, err.message || err);
             return res.status(400).json({ error: err.message || 'Bad request' });
         }
     },
@@ -115,9 +122,10 @@ create: async (req, res) => {
             if (!rejected) {
                 return res.status(404).json({ error: 'Opportunity not found or already approved/rejected' });
             }
+            console.log(`[POST] Từ chối cơ hội ID ${id} thành công`);
             return res.json(rejected);
         } catch (err) {
-            console.error('reject error:', err);
+            console.error(`[POST] Từ chối cơ hội ID ${id} - LỖI:`, err.message || err);
             return res.status(400).json({ error: err.message || 'Bad request' });
         }
     },
@@ -129,9 +137,10 @@ create: async (req, res) => {
             if (!user.id) return res.status(401).json({ error: 'Unauthorized' });
             // Only creator or sale role should submit; role middleware can handle specific checks upstream
             const updated = await opportunityService.submitToBod(id, user.id);
+            console.log(`[POST] Gửi cơ hội ID ${id} lên BOD thành công`);
             return res.json(updated);
         } catch (err) {
-            console.error('submit error:', err);
+            console.error(`[POST] Gửi cơ hội ID ${id} lên BOD - LỖI:`, err.message || err);
             return res.status(400).json({ error: err.message || 'Bad request' });
         }
     },
@@ -141,9 +150,10 @@ create: async (req, res) => {
             const creatorId = req.params.userId || (req.user && req.user.id);
             if (!creatorId) return res.status(400).json({ error: 'creatorId required' });
             const list = await opportunityService.getOpportunitiesByCreator(creatorId);
+            console.log(`[GET] Lấy danh sách cơ hội theo người tạo ID ${creatorId} thành công`);
             return res.json(list);
         } catch (err) {
-            console.error('getByCreator error:', err);
+            console.error(`[GET] Lấy danh sách cơ hội theo người tạo ID ${creatorId} - LỖI:`, err.message || err);
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
@@ -155,9 +165,10 @@ create: async (req, res) => {
             const result = await opportunityService.getServices(opportunityId);
             // normalize to array
             const services = Array.isArray(result) ? result : (result && result.rows) ? result.rows : [];
+            console.log(`[GET] Lấy danh sách dịch vụ của cơ hội ID ${opportunityId} thành công`);
             return res.status(200).json(services);
         } catch (err) {
-            console.error('getService error:', err);
+            console.error(`[GET] Lấy danh sách dịch vụ của cơ hội ID ${opportunityId} - LỖI:`, err.message || err);
             return res.status(500).json({ error: err.message || 'Internal server error' });
         }
     },
@@ -188,9 +199,10 @@ quote: async (req, res) => {
     };
 
     const result = await opportunityService.quote(opportunityId, body, os);
+    console.log(`[PATCH] Báo giá cơ hội ID ${opportunityId} thành công`);
     return res.json(result);
   } catch (err) {
-    console.error("Lỗi khi báo giá:", err);
+    console.error(`[PATCH] Báo giá cơ hội ID ${opportunityId} - LỖI:`, err.message || err);
     return res.status(500).json({ error: "Internal server error" });
   }
 },
@@ -222,10 +234,11 @@ updateQuote: async (req, res) => {
         console.log(q.id)
         await quote.update(q.id, { status : 'pending'})
     }
+    console.log(`[PUT] Cập nhật báo giá cơ hội ID ${opportunityId} thành công`);
     return res.json(result);
   }
    catch (err) {
-    console.error("Lỗi khi cập nhật báo giá:", err);
+    console.error(`[PUT] Cập nhật báo giá cơ hội ID ${opportunityId} - LỖI:`, err.message || err);
     return res.status(500).json({ error: "Internal server error" });
   }
 },
@@ -234,9 +247,11 @@ getMyOpportunities: async (req, res) =>{
         const id = req.user.id;
         if(!id) return res.status(404).send('Thiếu id người gửi')
         const result = await opportunityService.getOpportunitiesByCreator(id)
+        console.log(`[GET] Lấy danh sách cơ hội của tôi thành công`);
         return res.json(result)
     }catch(err){
-        console.error(err)
+        console.error('[GET] Lấy danh sách cơ hội của tôi - LỖI:', err.message || err);
+        return res.status(500).json({ error: 'Internal server error' });
     }
 },
 
@@ -255,10 +270,10 @@ addService: async (req, res) => {
             quantity: quantity || 1,
             note: note || null
         });
-        
+        console.log(`[POST] Thêm dịch vụ vào cơ hội ID ${opportunityId} thành công`);
         return res.status(201).json(result);
     } catch (err) {
-        console.error('addService error:', err);
+        console.error(`[POST] Thêm dịch vụ vào cơ hội ID ${opportunityId} - LỖI:`, err.message || err);
         return res.status(400).json({ error: err.message || 'Bad request' });
     }
 },
@@ -274,10 +289,10 @@ updateService: async (req, res) => {
         if (!result) {
             return res.status(404).json({ error: 'Service not found or no changes made' });
         }
-        
+        console.log(`[PATCH] Cập nhật dịch vụ ID ${serviceId} trong cơ hội ID ${opportunityId} thành công`);
         return res.json(result);
     } catch (err) {
-        console.error('updateService error:', err);
+        console.error(`[PATCH] Cập nhật dịch vụ ID ${serviceId} trong cơ hội ID ${opportunityId} - LỖI:`, err.message || err);
         return res.status(400).json({ error: err.message || 'Bad request' });
     }
 },
@@ -292,10 +307,10 @@ deleteService: async (req, res) => {
         if (!result) {
             return res.status(404).json({ error: 'Service not found' });
         }
-        
+        console.log(`[DELETE] Xóa dịch vụ ID ${serviceId} khỏi cơ hội ID ${opportunityId} thành công`);
         return res.json({ message: 'Service deleted successfully', item: result });
     } catch (err) {
-        console.error('deleteService error:', err);
+        console.error(`[DELETE] Xóa dịch vụ ID ${serviceId} khỏi cơ hội ID ${opportunityId} - LỖI:`, err.message || err);
         return res.status(400).json({ error: err.message || 'Bad request' });
     }
 }

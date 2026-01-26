@@ -6,9 +6,10 @@ const userController = {
     getAllUser: async(req, res) =>{
         try {
             const allUsers = await userService.getAllUsers();
+            console.log('[GET] Lấy danh sách tất cả người dùng thành công');
             res.json(allUsers);
         } catch (err) {
-            console.error('getAllUser error:', err);
+            console.error('[GET] Lấy danh sách tất cả người dùng - LỖI:', err.message || err);
             res.status(500).send("Error fetching users");
         }
     },
@@ -18,9 +19,10 @@ const userController = {
             const id = req.params.id;
             const user = await userService.getUserById(id);
             if (!user) return res.status(404).json({ error: 'User not found' });
+            console.log(`[GET] Lấy thông tin người dùng ID ${id} thành công`);
             return res.json(user);
         } catch (err) {
-            console.error('getUserById error:', err);
+            console.error(`[GET] Lấy thông tin người dùng ID ${id} - LỖI:`, err.message || err);
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
@@ -47,9 +49,10 @@ const userController = {
             } = req.body;
             const result = await userService.update(userId, username, fullName, phoneNumber, email)
             if (!result) return res.status(404).json({ error: 'User not found or no fields to update' });
+            console.log(`[PATCH] Cập nhật người dùng ID ${userId} thành công`);
             return res.json(result);
         } catch(err) {
-            console.error('update user error:', err);
+            console.error(`[PATCH] Cập nhật người dùng ID ${userId} - LỖI:`, err.message || err);
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
@@ -57,18 +60,22 @@ const userController = {
         const id = req.user.id;
         try{
             const result = await userService.getPersonalInfo(id);
+            console.log(`[GET] Lấy thông tin cá nhân thành công`);
             return res.json(result)
         }catch(err){
-            console.error('Lỗi khi lấy thông tin cá nhân', err)
+            console.error('[GET] Lấy thông tin cá nhân - LỖI:', err.message || err);
+            return res.status(500).json({ error: 'Internal server error' });
         }
     },
     getJobByUserId : async(req, res) => {
         try{
             const id = req.params.id
             const result = await userService.getJobByUserId(id);
+            console.log(`[GET] Lấy danh sách công việc của người dùng ID ${id} thành công`);
             return res.json(result)
         }catch(err){
-            console.error('Lỗi khi lấy thông tin cá nhân', err)
+            console.error(`[GET] Lấy danh sách công việc của người dùng ID ${id} - LỖI:`, err.message || err);
+            return res.status(500).json({ error: 'Internal server error' });
         }
     },
 

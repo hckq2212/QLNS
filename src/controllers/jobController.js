@@ -6,9 +6,10 @@ const jobController = {
     getAll: async (req, res) => {
         try{
             const result = await jobService.getAll();
+            console.log('[GET] Lấy danh sách tất cả công việc thành công');
             return res.json(result);
         }catch(err){
-            console.error(`Lỗi khi get all công việc: ${err}`)
+            console.error('[GET] Lấy danh sách tất cả công việc - LỖI:', err.message || err);
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
@@ -16,9 +17,10 @@ const jobController = {
         const jobId = req.params.id;
         try{
             const result = await jobService.getById(jobId);
+            console.log(`[GET] Lấy chi tiết công việc ID ${jobId} thành công`);
             return res.json(result);
         }catch(err){
-            console.error(`Looix khi get Job by id: ${err}`)
+            console.error(`[GET] Lấy chi tiết công việc ID ${jobId} - LỖI:`, err.message || err);
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
@@ -26,9 +28,11 @@ const jobController = {
         const payload = req.body || {}
         try{
             const result = await jobService.create(payload);
+            console.log('[POST] Tạo công việc thành công');
             return res.json(result)
         }catch(err){
-            console.error("Lỗi khi tạo job")
+            console.error('[POST] Tạo công việc - LỖI:', err.message || err);
+            return res.status(500).json({ error: 'Internal server error' });
         }
     },
     update: async (req, res) => {
@@ -39,9 +43,10 @@ const jobController = {
             console.log(payload)
             const result = await jobService.update(jobId, payload);
             if (!result) return res.status(404).json({ error: 'Job not found' });
+            console.log(`[PATCH] Cập nhật công việc ID ${jobId} thành công`);
             return res.status(200).json(result);
         } catch (err) {
-            console.error('Error in jobController.update', err);
+            console.error(`[PATCH] Cập nhật công việc ID ${jobId} - LỖI:`, err.message || err);
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
@@ -49,8 +54,11 @@ const jobController = {
         try{
             const id = req.params.projectId;
             const result = await jobService.getByProject(id);
+            console.log(`[GET] Lấy danh sách công việc theo dự án ID ${id} thành công`);
             return res.json(result)
         }catch(err){
+            console.error(`[GET] Lấy danh sách công việc theo dự án ID ${id} - LỖI:`, err.message || err);
+            return res.status(500).json({ error: 'Internal server error' });
 
         }
     },
@@ -126,9 +134,10 @@ const jobController = {
 
       // ---- UPDATE ----
       const result = await jobService.assign(id, body);
+      console.log(`[POST] Phân công công việc ID ${id} thành công`);
       return res.status(200).json(result);
     } catch (err) {
-      console.error('Lỗi khi assign job', err);
+      console.error(`[POST] Phân công công việc ID ${id} - LỖI:`, err.message || err);
       return res.status(500).json({ error: err.message || 'Internal server error' });
     }
   },
@@ -140,18 +149,20 @@ const jobController = {
         const id = req.user.id
         try {
             const result = await jobService.getMyJob(id);
+            console.log('[GET] Lấy danh sách công việc của tôi thành công');
             return res.status(200).json(result)
         } catch (error) {
-            console.error('Lỗi khi get công việc', error)
+            console.error('[GET] Lấy danh sách công việc của tôi - LỖI:', error.message || error);
         }
     },
     getJobByUserId: async (req, res) => {
         const userId = req.params.userId;
         try {
             const result = await jobService.getJobByUserId(userId);
+            console.log(`[GET] Lấy danh sách công việc của người dùng ID ${userId} thành công`);
             return res.status(200).json(result);
         } catch (error) {
-            console.error('Lỗi khi get công việc theo userId:', error);
+            console.error(`[GET] Lấy danh sách công việc của người dùng ID ${userId} - LỖI:`, error.message || error);
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
@@ -226,9 +237,10 @@ const jobController = {
 
             // 4. Gọi service: set status='review' + merge evidence
             const result = await jobService.finish(id, evidenceData, req.user?.id || null);
+            console.log(`[POST] Hoàn thành công việc ID ${id} thành công`);
             return res.status(200).json(result);
         } catch (err) {
-            console.error('finish error:', err);
+            console.error(`[POST] Hoàn thành công việc ID ${id} - LỖI:`, err.message || err);
             return res.status(500).json({ error: err.message || 'Internal server error' });
         }
     }
@@ -269,9 +281,10 @@ const jobController = {
 
             // Gọi service: replace evidence (not merge) + set status='review'
             const result = await jobService.rework(id, uploaded, req.user?.id || null);
+            console.log(`[POST] Làm lại công việc ID ${id} thành công`);
             return res.status(200).json(result);
         } catch (err) {
-            console.error('rework error:', err);
+            console.error(`[POST] Làm lại công việc ID ${id} - LỖI:`, err.message || err);
             return res.status(500).json({ error: err.message || 'Internal server error' });
         }
     }

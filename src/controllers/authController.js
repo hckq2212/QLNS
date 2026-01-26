@@ -62,9 +62,10 @@ const authController = {
                 fullName: result.full_name,
                 role: result.role
             };
+            console.log(`[POST] Đăng ký tài khoản ${userInput.username} thành công`);
             return res.status(201).json(publicUser);
         } catch(err){
-            console.error('Register error:', err);
+            console.error(`[POST] Đăng ký tài khoản - LỖI:`, err.message || err);
             return res.status(500).json({ error: 'Internal server error' });
         }
 
@@ -86,9 +87,10 @@ const authController = {
             if (result && result.error) return res.status(401).json({ error: result.error });
 
             // successful login returns token pair
+            console.log(`[POST] Đăng nhập tài khoản ${userInput.username} thành công`);
             return res.status(200).json(result)
         }catch(err){
-            console.error('Login error:', err);
+            console.error('[POST] Đăng nhập - LỖI:', err.message || err);
             return res.status(500).json({ error: 'Internal server error' });
         }
     },
@@ -98,9 +100,10 @@ const authController = {
         try{
             const result = await authService.refresh(incoming)
             if (result && result.error) return res.status(401).send(result.error)
+            console.log('[POST] Làm mới token thành công');
             return res.send(result)
         }catch(err){
-            console.error(err)
+            console.error('[POST] Làm mới token - LỖI:', err.message || err);
             return res.status(500).send('Internal error')
         }
     },
@@ -119,9 +122,10 @@ const authController = {
 
         try {
             await authService.changePassword(userId, newPassword);
+            console.log(`[POST] Đổi mật khẩu cho người dùng ID ${userId} thành công`);
             return res.json({ message: 'Password updated successfully' });
         } catch (err) {
-            console.error('Change password error:', err);
+            console.error(`[POST] Đổi mật khẩu cho người dùng ID ${userId} - LỖI:`, err.message || err);
             return res.status(500).json({ error: 'Internal server error' });
         }
     }
