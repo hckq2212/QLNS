@@ -31,6 +31,7 @@ import acceptanceRoute from './routes/acceptanceRoute.js';
 import quoteRoute from './routes/quoteRoute.js';
 import notificationRoute from './routes/notificationRoute.js';
 import businessFieldRoute from './routes/businessFieldRoute.js';
+import limiter from './config/ratelimit.js'
 
 const app = express()
 const port = process.env.PORT || 3000
@@ -44,6 +45,7 @@ app.use(cors({
 app.use(express.json())
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
+app.use(limiter)
 
 
 app.use('/api/auth',authRoute)
